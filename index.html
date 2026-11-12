@@ -36,3 +36,1762 @@ button:active { transform: scale(0.96); }
     padding: 14px;
     margin-top: 14px;
     text-align: center;
+    transition: 0.2s;
+}
+.ocr-zone:focus-within, .ocr-zone.dragover {
+    border-color: #3fb950;
+    background: #0f291e;
+}
+.ocr-paste-target {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 10px;
+    color: #8b949e;
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ocr-paste-target:focus {
+    border-color: #58a6ff;
+    color: #fff;
+}
+.ocr-btns { display: flex; gap: 8px; margin-top: 10px; }
+.ocr-btn { background: #1f6feb; color: #fff; font-size: 12px; padding: 10px; }
+.ocr-btn.cam { background: #8957e5; }
+
+.ocr-progress {
+    margin-top: 10px;
+    font-size: 13px;
+    color: #3fb950;
+    font-weight: bold;
+    display: none;
+}
+.ocr-preview-wrap {
+    margin-top: 12px;
+    display: none;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: left;
+}
+.ocr-preview-img {
+    max-width: 100%;
+    max-height: 180px;
+    display: block;
+    margin: 0 auto 10px auto;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+}
+.staging-row {
+    display: grid;
+    grid-template-columns: 110px repeat(6, 1fr) 36px;
+    gap: 5px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.staging-row input {
+    margin-top: 0;
+    padding: 6px 4px;
+    font-size: 13px;
+    text-align: center;
+    font-weight: bold;
+}
+.staging-row .st-date { color: #3fb950; border-color: #238636; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.staging-row .st-num { color: #58a6ff; }
+.staging-row.check { outline: 2px solid #d29922; outline-offset: 2px; border-radius: 6px; background: rgba(210,153,34,0.10); }
+.ocr-thumbs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 4px; align-items: flex-start; justify-content: safe center; }
+.ocr-thumb { position: relative; flex: 0 0 auto; cursor: zoom-in; border: 1px solid #30363d; border-radius: 6px; overflow: hidden; line-height: 0; }
+.ocr-thumb img { height: 170px; width: auto; display: block; }
+.ocr-thumb span { position: absolute; top: 4px; left: 4px; background: #1f6feb; color: #fff; font-size: 11px; font-weight: bold; line-height: 1; padding: 3px 6px; border-radius: 9px; }
+.ocr-thumb.big { cursor: zoom-out; flex: 0 0 100%; }
+.ocr-thumb.big img { height: auto; width: 100%; }
+.ocr-thumb.fail { border: 2px solid #da3633; }
+.staging-row .st-meta { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; font-size: 11px; color: #8b949e; text-align: left; }
+.staging-row .st-type { flex: unset; margin: 0; padding: 2px 8px; font-size: 11px; font-weight: bold; border-radius: 10px; background: #21262d; color: #e3b341; border: 1px solid #30363d; }
+.staging-del { background: #da3633; color: #fff; padding: 6px 0; font-size: 12px; border-radius: 6px; }
+
+.backtest-box { background: #0d1117; border: 2px solid #3fb950; padding: 15px; border-radius: 8px; margin-top: 15px; display: none;}
+.bt-title { color: #3fb950; font-size: 15px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase;}
+.bt-detail { font-size: 14px; line-height: 1.6; color: #c9d1d9;}
+.bt-rank { font-size: 20px; font-weight: 900; color: #58a6ff; margin: 10px 0;}
+
+.result{margin-top:18px;}
+
+.block-top { background: #0d1117; border-left: 4px solid #3fb950; padding: 15px; border-radius: 8px; margin-bottom: 15px;}
+.block-mid { background: #1a150b; border-left: 4px solid #d29922; padding: 15px; border-radius: 8px; margin-bottom: 15px;}
+.block-near-bottom { background: #160a1c; border-left: 4px solid #a371f7; padding: 15px; border-radius: 8px; margin-bottom: 15px;}
+.block-global { background: #0c1926; border-left: 4px solid #58a6ff; padding: 15px; border-radius: 8px; margin-bottom: 15px;}
+.block-cover { background: #0b1f14; border-left: 4px solid #39d353; padding: 15px; border-radius: 8px;}
+
+.title-top { color: #3fb950; font-size: 14px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase;}
+.title-mid { color: #d29922; font-size: 14px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase;}
+.title-near-bottom { color: #a371f7; font-size: 14px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase;}
+.title-global { color: #58a6ff; font-size: 14px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase;}
+.title-cover { color: #39d353; font-size: 14px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase;}
+
+/* PHÒNG THÍ NGHIỆM V10 */
+.lab { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 12px 14px; margin-bottom: 15px; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+.lab summary { cursor: pointer; font-weight: 900; color: #e3b341; font-size: 13px; margin-top: 12px; }
+.lab-h { color: #58a6ff; font-weight: bold; margin-top: 12px; margin-bottom: 2px; }
+.lab table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12px; line-height: 1.4; }
+.lab th, .lab td { padding: 5px 6px; border-bottom: 1px solid #21262d; text-align: left; vertical-align: top; }
+.lab th { color: #8b949e; font-weight: bold; }
+.lab .num { text-align: right; font-family: monospace; white-space: nowrap; }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; white-space: nowrap; }
+.pill.g { background: rgba(63,185,80,0.15); color: #3fb950; }
+.pill.y { background: rgba(210,153,34,0.15); color: #d29922; }
+.pill.n { background: #21262d; color: #8b949e; }
+.top12 { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.ball { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; background: linear-gradient(135deg, #da3633, #f0883e); color: #fff; }
+
+.row-item { font-size: 15px; margin-bottom: 8px; font-family: monospace; display: flex; justify-content: space-between; align-items: center;}
+.row-item b { font-size: 17px; letter-spacing: 1px; }
+
+.score-badge { font-size: 12px; padding: 3px 6px; border-radius: 4px; font-family: Arial;}
+
+.metric-box {display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; font-size: 12px; color: #8b949e;}
+.metric-item {background: #21262d; padding: 8px; border-radius: 6px;}
+.metric-item strong { color: #c9d1d9; }
+
+.history-item{padding:12px 0;border-bottom:1px solid #30363d;display: flex;justify-content: space-between;align-items: center;font-size: 14px;}
+.hot-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.hot-cell{padding:8px;text-align:center;border-radius:8px;background:#21262d;font-size: 13px;font-weight: bold; color: #8b949e;}
+.bar{height:10px;background:linear-gradient(90deg, #1f6feb, #58a6ff);border-radius:20px;margin-top:4px;}
+
+.header-banner { background: linear-gradient(135deg, #0d1117, #0f291e); border: 1px solid #3fb950; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;}
+.header-title { font-size: 18px; font-weight: 900; margin-bottom: 5px; text-transform: uppercase; color: #3fb950;}
+.header-desc { font-size: 13px; color: #c9d1d9;}
+
+@media(max-width:1100px){
+.wrapper{grid-template-columns:minmax(0,1fr); padding:10px; gap:12px;} .main{order:1;} .left{order:2;} .right{order:3;}
+.panel{padding:14px;}
+.row-item{flex-wrap:wrap; gap:4px;} .row-item b{font-size:16px; letter-spacing:0;}
+.lab{padding:10px;} .lab th, .lab td{padding:4px 3px;}
+.staging-row { grid-template-columns: 92px repeat(6, 1fr) 30px; gap: 3px; }
+}
+@media(max-width:700px){
+.staging-row { grid-template-columns: repeat(6, 1fr) 34px; gap: 4px; padding: 5px; margin-bottom: 10px; border: 1px solid #30363d; border-radius: 8px; }
+.staging-row .st-date { grid-column: 1 / -1; font-size: 15px; padding: 7px 4px; }
+.staging-row .st-num { font-size: 15px; padding: 8px 2px; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+
+<div class="panel left">
+<h3 style="color: #58a6ff;">📊 DATA ENGINE</h3>
+<div id="gameScopeTitle" style="font-weight: bold; font-size: 15px; margin-bottom: 5px;">Vé: Mega 6/45</div>
+<div id="totalDraw" style="font-weight: bold; color: #3fb950; margin-bottom: 15px;">Tổng nạp: 0 kỳ</div>
+<h4>🔥 Top số nóng (300 kỳ)</h4>
+<div id="hotList"></div>
+<h4>📈 Tần suất</h4>
+<div id="freqChart"></div>
+</div>
+
+<div class="panel main">
+<div class="header-banner">
+    <div class="header-title">🧭 V10: TỔ HỢP TÍN HIỆU TỰ HỌC · BAYES · NGŨ HÀNH · LUYỆN KIM MÔ PHỎNG</div>
+    <div class="header-desc">Tần suất, độ trễ, Markov, Ngũ hành Can–Chi, Âm Dương, cặp số và cấu trúc Delta–Gauss–Gail Howard được hậu kiểm tiến trên toàn bộ lịch sử; trọng số tự co giãn theo bằng chứng thống kê. Vẫn giữ Quét Ảnh OCR.</div>
+</div>
+
+<select id="gameType" onchange="updateAllByGameType()">
+<option value="45">Mega 6/45</option>
+<option value="55">Power 6/55</option>
+</select>
+
+<!-- KHỐI NHẬN DIỆN ẢNH CHỤP MÀN HÌNH VIETLOT (OCR) -->
+<div class="ocr-zone" id="ocrDropZone">
+    <div style="font-weight: bold; color: #58a6ff; font-size: 14px; margin-bottom: 8px;">
+        📸 QUÉT ẢNH DANH SÁCH KẾT QUẢ VIETLOTT (TỰ ĐỘNG NHẬP NHIỀU KỲ)
+    </div>
+    <div class="ocr-paste-target" id="pasteCatcher" contenteditable="true" placeholder="Chạm vào đây rồi nhấn Dán (Paste / Ctrl+V) ảnh hoặc văn bản kết quả...">
+        👉 Chạm vào đây & Dán (Ctrl+V) ảnh chụp màn hình — dán liên tiếp nhiều ảnh được — hoặc copy văn bản từ web Vietlott
+    </div>
+    <div class="ocr-btns">
+        <button class="ocr-btn" onclick="pasteFromClipboardAPI()">📋 Dán Ảnh Clipboard</button>
+        <button class="ocr-btn cam" onclick="document.getElementById('ocrFileInput').click()">📷 Chọn Ảnh (nhiều ảnh 1 lượt)</button>
+        <input type="file" id="ocrFileInput" style="display:none" accept="image/*" multiple onchange="handleOCRFile(event)">
+    </div>
+    <div style="display:flex; gap:8px; align-items:center; margin-top:8px; font-size:12px; color:#8b949e;">
+        <span>Chế độ lọc bóng số:</span>
+        <select id="ocrFilterMode" style="margin-top:0; padding:5px; width:auto; min-width:0; flex:1; font-size:12px;" onchange="rescanLastImage()">
+            <option value="dual">⚡ Tự động (bảng web vòng tròn đỏ → bóng màu chữ trắng)</option>
+            <option value="contrast">☀️ Nền sáng chữ tối (xóa vòng tròn màu)</option>
+            <option value="invertball">🔴 Chữ trắng trong bóng tô màu</option>
+            <option value="raw">🖼️ Ảnh gốc không lọc</option>
+        </select>
+    </div>
+    <div class="ocr-progress" id="ocrStatus">⏳ Đang khởi tạo lõi AI đọc ảnh...</div>
+
+    <!-- BẢNG KIỂM DUYỆT KẾT QUẢ ĐỌC TỪ ẢNH -->
+    <div class="ocr-preview-wrap" id="ocrPreviewWrap">
+        <div id="ocrThumbs" class="ocr-thumbs"></div>
+        <div style="font-size:13px; font-weight:bold; color:#3fb950; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <span id="ocrDetectedCount" style="flex:1; min-width:0;">Đã bóc tách: 0 kỳ quay</span>
+            <button onclick="addEmptyStagingRow()" style="flex:unset; padding:4px 8px; font-size:11px; background:#21262d; color:#58a6ff; border:1px solid #58a6ff;">+ Thêm dòng</button>
+        </div>
+        <div id="stagingList"></div>
+        <div class="btns" style="margin-top:10px;">
+            <button class="predict" onclick="commitStagingDraws()">📥 NẠP TẤT CẢ & PHÂN TÍCH NGAY</button>
+            <button class="save" style="flex:0.4;" onclick="closeOCRPreview()">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<!-- KHỐI NHẬP ĐƠN LẺ THỦ CÔNG -->
+<input id="pasteBox" placeholder="Hoặc Paste nhanh 1 dãy số: 09-21-22-26-33-51">
+<input id="dateBox" placeholder="Ngày quay mới nhất (VD: 28/5, 28-05-2026...)">
+
+<div class="grid6">
+<input id="s1" type="number" placeholder="S1"><input id="s2" type="number" placeholder="S2"><input id="s3" type="number" placeholder="S3">
+<input id="s4" type="number" placeholder="S4"><input id="s5" type="number" placeholder="S5"><input id="s6" type="number" placeholder="S6">
+</div>
+
+<div class="btns">
+<button class="save" onclick="saveData()">💾 LƯU 1 KỲ & HẬU KIỂM</button>
+<button class="predict" onclick="predictDataBtn()">⚡ CHẠY MÔ HÌNH V10</button>
+</div>
+<input id="targetBox" placeholder="Ngày quay cần dự đoán (để trống = tự tính kỳ kế tiếp theo lịch quay)" onchange="predictDataBtn()">
+
+<div class="btns" style="margin-top: 8px;">
+<button class="backup" onclick="exportData()">⬇️ XUẤT BACKUP</button>
+<button class="restore" onclick="document.getElementById('fileInput').click()">⬆️ NHẬP BACKUP</button>
+<input type="file" id="fileInput" style="display:none" accept=".txt" onchange="importData(event)">
+</div>
+
+<div class="backtest-box" id="backtestReport"></div>
+<div class="result" id="resultBox">Mô hình V10 đang chờ dữ liệu...</div>
+<h3 style="margin-top: 30px; border-top: 2px solid #30363d; padding-top: 15px; color: #8b949e;">📚 LỊCH SỬ KỲ QUAY</h3>
+<div id="history"></div>
+</div>
+
+<div class="panel right">
+<h3 style="color: #58a6ff;">⭐ Bản đồ nhiệt</h3>
+<div class="hot-grid" id="heatMap"></div>
+<div style="font-size:11px; color:#8b949e; margin-top:8px; line-height:1.5;">🟥 mô hình đánh giá cao · 🟦 đánh giá thấp · viền vàng = Top 12 số mạnh</div>
+<h3 style="margin-top: 25px; color: #58a6ff;">📊 Xu hướng tổng</h3>
+<div id="trendBox"></div>
+</div>
+
+</div>
+
+<script>
+// Giữ nguyên KEY cũ để bảo toàn 100% dữ liệu lịch sử
+const KEY = 'vietlott_ai_v81_unbound'; 
+let ocrBusy = false, ocrQueue = [], ocrSession = [], ocrThumbUrls = [];   // lô ảnh đang đọc / các ảnh của bảng kiểm duyệt đang mở
+let ocrNotice = '';        // thông báo hiện kèm bảng kiểm duyệt (vd: đã tự chuyển loại vé)
+
+function normalizeToDDMMYYYY(v) {
+    if (!v) return "";
+    let cleanStr = String(v).trim().replace(/[\/\-]/g, '.');
+    let m1 = cleanStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (m1) return `${m1[1].padStart(2,'0')}.${m1[2].padStart(2,'0')}.${m1[3]}`;
+    let m2 = cleanStr.match(/^(\d{4})\.(\d{1,2})\.(\d{1,2})$/);
+    if (m2) return `${m2[3].padStart(2,'0')}.${m2[2].padStart(2,'0')}.${m2[1]}`;
+    let m3 = cleanStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2})$/);
+    if (m3) return `${m3[1].padStart(2,'0')}.${m3[2].padStart(2,'0')}.20${m3[3]}`;
+    let m4 = cleanStr.match(/^(\d{1,2})\.(\d{1,2})$/);
+    if (m4) return `${m4[1].padStart(2,'0')}.${m4[2].padStart(2,'0')}.${new Date().getFullYear()}`;
+    return ""; 
+}
+
+function getTimestamp(ddmmyyyy) {
+    if(!ddmmyyyy) return 0;
+    let m = ddmmyyyy.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}`).getTime();
+    return 0;
+}
+
+function autoPaste(){
+    const raw=document.getElementById('pasteBox').value;
+    const arr=raw.split(/[^0-9]+/).filter(x=>x!='');
+    if(arr.length>=6) {
+        for(let i=0;i<6;i++){ document.getElementById('s'+(i+1)).value=parseInt(arr[i]); }
+    }
+}
+document.getElementById('pasteBox').addEventListener('input',autoPaste);
+
+// =========================================================================
+// MODULE OCR & BÓC TÁCH DANH SÁCH KẾT QUẢ TỪ ẢNH HOẶC CLIPBOARD
+// =========================================================================
+
+// 1. Lắng nghe sự kiện Paste toàn trang (Ctrl+V hoặc Dán trên điện thoại) — nhận MỌI ảnh có trong lần dán
+window.addEventListener('paste', function(e) {
+    let cd = e.clipboardData || (e.originalEvent && e.originalEvent.clipboardData);
+    let items = cd ? cd.items : [], blobs = [];
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) { let f = items[i].getAsFile(); if (f) blobs.push(f); }
+    }
+    if (blobs.length > 0) { e.preventDefault(); queueImagesForOCR(blobs); return; }
+    // Nếu người dùng copy văn bản trực tiếp từ bảng web Vietlott và dán vào ô pasteCatcher
+    if (document.activeElement && document.activeElement.id === 'pasteCatcher') {
+        e.preventDefault();
+        let pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        resetPasteCatcherText();
+        if (pastedText && pastedText.trim().length > 5) {
+            renderStagingTable(parseTextAuto(pastedText));
+        }
+    }
+});
+
+// Văn bản dán vào: dò loại vé theo ngày quay trước (đọc thử với dải 1..55), rồi mới bóc tách theo đúng loại vé
+function parseTextAuto(text) {
+    let cur = parseInt(document.getElementById('gameType').value);
+    let t = gameFromDates(parseOCRTextToDraws(text, 55).filter(d => d.hasDate).map(d => d.date), cur);
+    if (t !== cur) ocrNotice = switchGameType(t);
+    let draws = parseOCRTextToDraws(text, t);
+    draws.forEach(d => { d.type = t; });
+    return draws;
+}
+
+function resetPasteCatcherText() {
+    setTimeout(() => {
+        document.getElementById('pasteCatcher').innerHTML = "👉 Chạm vào đây & Dán (Ctrl+V) ảnh chụp màn hình — dán liên tiếp nhiều ảnh được — hoặc copy văn bản từ web Vietlott";
+    }, 100);
+}
+
+// 2. Nút đọc Clipboard trực tiếp (Clipboard API)
+async function pasteFromClipboardAPI() {
+    try {
+        if (!navigator.clipboard || !navigator.clipboard.read) {
+            alert("Trình duyệt đang mở qua giao thức hạn chế quyền đọc tự động. Bạn hãy chạm giữ vào ô nét đứt phía trên rồi bấm 'Dán' hoặc dùng nút '📷 Chọn Ảnh' nhé!");
+            return;
+        }
+        const clipboardItems = await navigator.clipboard.read();
+        let blobs = [], textDraws = null;
+        for (const item of clipboardItems) {
+            const imageType = item.types.find(type => type.startsWith('image/'));
+            if (imageType) { blobs.push(await item.getType(imageType)); continue; }
+            if (item.types.includes('text/plain') && !textDraws) {
+                const blob = await item.getType('text/plain');
+                let draws = parseTextAuto(await blob.text());
+                if (draws.length > 0) textDraws = draws;
+            }
+        }
+        if (blobs.length > 0) { queueImagesForOCR(blobs); return; }
+        if (textDraws) { renderStagingTable(textDraws); return; }
+        alert("Không tìm thấy ảnh hoặc danh sách kết quả trong bộ nhớ tạm (Clipboard)!");
+    } catch (err) {
+        alert("Để dán trên điện thoại: Bạn hãy chạm giữ vào ô nét đứt 'Chạm vào đây & Dán' rồi chọn 'Dán', hoặc bấm nút '📷 Chọn Ảnh'!");
+    }
+}
+
+// 3. Xử lý khi chọn file ảnh từ máy (chọn được nhiều ảnh một lượt)
+function handleOCRFile(event) {
+    let files = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (files.length === 0) return;
+    queueImagesForOCR(files);
+}
+
+// Đổi chế độ lọc -> đọc lại toàn bộ ảnh của bảng kiểm duyệt đang mở
+function rescanLastImage() {
+    if (ocrSession.length > 0 && !ocrBusy) runOCRBatch(ocrSession.slice(), true);
+}
+
+// Kéo-thả nhiều ảnh vào khung nét đứt (trên máy tính)
+(function () {
+    let z = document.getElementById('ocrDropZone');
+    z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('dragover'); });
+    z.addEventListener('dragleave', () => z.classList.remove('dragover'));
+    z.addEventListener('drop', e => { e.preventDefault(); z.classList.remove('dragover'); queueImagesForOCR(Array.from((e.dataTransfer && e.dataTransfer.files) || [])); });
+})();
+
+// 4. TIỀN XỬ LÝ ẢNH
+function capScale(img, scale) { return Math.min(scale, Math.sqrt(9e6 / (img.width * img.height))); }   // chặn kích thước cho điện thoại
+function isWarm(r, g, b) { return r >= g && r >= b && (r - b) > 50; }                                    // đỏ / cam / vàng / hồng
+
+// 4a. Dò LƯỚI BÓNG: tìm các hàng có >= 6 vòng tròn (hoặc bóng tô đặc) màu nóng xếp ngang.
+//     Trả về tọa độ theo ảnh gốc: rows[{y0,y1,rings[{x0,x1}]}], D = đường kính bóng, lightText = chữ trắng trong bóng tô đặc.
+function detectBallGrid(img) {
+    let sc = Math.min(1, Math.sqrt(4e6 / (img.width * img.height)));
+    let W = Math.max(1, Math.round(img.width * sc)), H = Math.max(1, Math.round(img.height * sc));
+    let cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    let cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, W, H); cx.drawImage(img, 0, 0, W, H);
+    let d = cx.getImageData(0, 0, W, H).data;
+    let warm = new Uint8Array(W * H), rowCnt = new Int32Array(H);
+    for (let p = 0, i = 0; p < W * H; p++, i += 4) {
+        if (isWarm(d[i], d[i+1], d[i+2])) { warm[p] = 1; rowCnt[(p / W) | 0]++; }
+    }
+    let rows = [], y = 0, nLight = 0, nDark = 0;
+    while (y < H) {
+        if (rowCnt[y] < 2) { y++; continue; }
+        let y0 = y; while (y < H && rowCnt[y] >= 2) y++;
+        let y1 = y, hB = y1 - y0;
+        if (hB < 10) continue;
+        let col = new Int32Array(W);
+        for (let yy = y0; yy < y1; yy++) { let o = yy * W; for (let x = 0; x < W; x++) col[x] += warm[o + x]; }
+        let rings = [], x = 0;
+        while (x < W) {
+            if (col[x] < 1) { x++; continue; }
+            let x0 = x; while (x < W && col[x] >= 1) x++;
+            let w = x - x0, k = Math.round(w / hB);
+            if (w >= 0.7 * hB && w <= 1.35 * hB) rings.push({ x0: x0, x1: x });
+            else if (k >= 2 && k <= 8 && Math.abs(w - k * hB) <= 0.25 * hB * k) {          // các bóng dính nhau -> chia đều
+                for (let j = 0; j < k; j++) rings.push({ x0: x0 + w * j / k, x1: x0 + w * (j + 1) / k });
+            }
+        }
+        if (rings.length < 6) continue;
+        // Kiểu bóng: vòng tròn rỗng (số tối bên trong) hay tô đặc (số trắng / số tối trên nền màu)
+        let cWarm = 0, cDark = 0, cLight = 0, cAll = 0;
+        rings.forEach(rg => {
+            let ccx = (rg.x0 + rg.x1) / 2, ccy = (y0 + y1) / 2, rr = Math.min(rg.x1 - rg.x0, hB) / 2 * 0.85;
+            for (let yy = Math.max(0, Math.floor(ccy - rr)); yy <= Math.min(H - 1, Math.ceil(ccy + rr)); yy++)
+                for (let xx = Math.max(0, Math.floor(ccx - rr)); xx <= Math.min(W - 1, Math.ceil(ccx + rr)); xx++) {
+                    if ((xx - ccx) * (xx - ccx) + (yy - ccy) * (yy - ccy) > rr * rr) continue;
+                    let p = yy * W + xx, r = d[p*4], g = d[p*4+1], b = d[p*4+2];
+                    let lum = 0.299 * r + 0.587 * g + 0.114 * b, sat = Math.max(r, g, b) - Math.min(r, g, b);
+                    cAll++;
+                    if (warm[p]) cWarm++; else if (lum < 120) cDark++; else if (lum > 165 && sat < 70) cLight++;
+                }
+        });
+        if (cAll > 0 && cWarm / cAll >= 0.45 && cLight >= cDark) nLight++; else nDark++;
+        rows.push({ y0: y0 / sc, y1: y1 / sc, rings: rings.map(rg => ({ x0: rg.x0 / sc, x1: rg.x1 / sc })) });
+    }
+    if (rows.length === 0) return null;
+    let ds = []; rows.forEach(r => r.rings.forEach(rg => ds.push(rg.x1 - rg.x0))); ds.sort((a, b) => a - b);
+    return { rows: rows, D: ds[Math.floor(ds.length / 2)], lightText: nLight > nDark };
+}
+
+// 4b. Xóa nét gạch chéo / dấu chấm bên trong số 0 (phông số trên web Vietlott dùng "0 gạch chéo" khiến máy đọc nhầm thành 8, 9, 2...)
+//     Làm việc trên vùng [x0,x1) x [y0,y1) của ảnh nhị phân d (0 = mực, 255 = nền).
+function fixSlashedZeros(d, Wd, x0, y0, x1, y1, wholeImage) {
+    let w = x1 - x0, h = y1 - y0; if (w < 6 || h < 6) return;
+    let n = w * h, ink = new Uint8Array(n), lab = new Int32Array(n), stack = new Int32Array(n);
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) ink[yy * w + xx] = d[((y0 + yy) * Wd + x0 + xx) * 4] === 0 ? 1 : 0;
+    function fill(seed, id, eight, want) {              // loang vùng, trả về {bbox, area}
+        let sp = 0, bx0 = w, bx1 = -1, by0 = h, by1 = -1, area = 0;
+        stack[sp++] = seed; lab[seed] = id;
+        while (sp > 0) {
+            let p = stack[--sp], px = p % w, py = (p / w) | 0; area++;
+            if (px < bx0) bx0 = px; if (px > bx1) bx1 = px; if (py < by0) by0 = py; if (py > by1) by1 = py;
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+                if ((dx === 0 && dy === 0) || (!eight && dx !== 0 && dy !== 0)) continue;
+                let qx = px + dx, qy = py + dy; if (qx < 0 || qy < 0 || qx >= w || qy >= h) continue;
+                let q = qy * w + qx;
+                if (lab[q] === 0 && ink[q] === want) { lab[q] = id; stack[sp++] = q; }
+            }
+        }
+        return { x0: bx0, x1: bx1 + 1, y0: by0, y1: by1 + 1, area: area };
+    }
+    // (1) nền: mọi điểm trắng nối được ra viền vùng
+    for (let xx = 0; xx < w; xx++) { if (!ink[xx] && !lab[xx]) fill(xx, -1, false, 0); let q = (h - 1) * w + xx; if (!ink[q] && !lab[q]) fill(q, -1, false, 0); }
+    for (let yy = 0; yy < h; yy++) { let q = yy * w; if (!ink[q] && !lab[q]) fill(q, -1, false, 0); q += w - 1; if (!ink[q] && !lab[q]) fill(q, -1, false, 0); }
+    // (2) các nét mực (8 hướng)
+    let comps = [null];
+    for (let p = 0; p < n; p++) if (ink[p] && !lab[p]) { let c = fill(p, comps.length, true, 1); c.holes = []; c.touch = false; comps.push(c); }
+    for (let p = 0; p < n; p++) {
+        if (!ink[p]) continue; let px = p % w, py = (p / w) | 0, c = comps[lab[p]];
+        if (c.touch) continue;
+        if (px === 0 || py === 0 || px === w - 1 || py === h - 1 || lab[p - 1] === -1 || lab[p + 1] === -1 || lab[p - w] === -1 || lab[p + w] === -1) c.touch = true;
+    }
+    // (3) các lỗ kín (trắng không nối ra nền) -> gán cho nét mực bao nó
+    let holeId = -2;
+    for (let p = 0; p < n; p++) if (!ink[p] && !lab[p]) {
+        let hid = holeId--, hole = fill(p, hid, false, 0); hole.id = hid;
+        let owner = p >= w ? lab[p - w] : 0;
+        if (owner > 0 && hole.area >= 4) comps[owner].holes.push(hole);
+    }
+    function erase(test, bx0, by0, bx1, by1) {
+        for (let py = Math.max(0, by0); py < Math.min(h, by1); py++) for (let px = Math.max(0, bx0); px < Math.min(w, bx1); px++) {
+            let p = py * w + px;
+            if (ink[p] && test(p)) { let o = ((y0 + py) * Wd + x0 + px) * 4; d[o] = d[o+1] = d[o+2] = 255; ink[p] = 0; }
+        }
+    }
+    // Độ nghiêng của mép lỗ: trung bình mép (dưới hoặc trên) ở 1/3 trái trừ 1/3 phải
+    function slant(hh, bottom) {
+        let sL = 0, nL = 0, sR = 0, nR = 0, wd = hh.x1 - hh.x0;
+        for (let xx = hh.x0; xx < hh.x1; xx++) {
+            let v = -1;
+            for (let yy = hh.y0; yy < hh.y1; yy++) if (lab[yy * w + xx] === hh.id) { if (bottom) v = yy; else { v = yy; break; } }
+            if (v < 0) continue;
+            if (xx < hh.x0 + wd / 3) { sL += v; nL++; } else if (xx >= hh.x1 - wd / 3) { sR += v; nR++; }
+        }
+        return (nL && nR) ? sL / nL - sR / nR : 0;
+    }
+    for (let id = 1; id < comps.length; id++) {
+        let c = comps[id];
+        if (!c.touch) { erase(p => lab[p] === id, c.x0, c.y0, c.x1, c.y1); continue; }                        // "đảo" mực nằm lọt trong lỗ: dấu chấm / mảnh gạch của số 0
+        if (c.holes.length < 2) continue;
+        let big = 0; c.holes.forEach(hh => { if (hh.area > big) big = hh.area; });
+        let hs = c.holes.filter(hh => hh.area >= 0.25 * big);
+        for (let i = 0; i < hs.length; i++) for (let j = i + 1; j < hs.length; j++) {
+            let up = hs[i].y0 <= hs[j].y0 ? hs[i] : hs[j], lo = up === hs[i] ? hs[j] : hs[i];
+            let xo = Math.min(up.x1, lo.x1) - Math.max(up.x0, lo.x0);
+            if (xo < 0.5 * Math.min(up.x1 - up.x0, lo.x1 - lo.x0)) continue;          // 2 lỗ của 2 chữ số khác nhau (dính nhau)
+            let Uh = Math.max(up.y1, lo.y1) - Math.min(up.y0, lo.y0);
+            // Số 8: hai lỗ chồng dọc, vách ngăn nằm ngang (độ nghiêng ~0).  Số 0 gạch chéo: vách ngăn nghiêng rõ, cùng chiều ở cả 2 lỗ.
+            let a1 = slant(up, true), a2 = slant(lo, false), thr = Math.max(2, 0.1 * Uh);
+            if (!(a1 * a2 > 0 && Math.min(Math.abs(a1), Math.abs(a2)) >= thr)) continue;
+            let U = { x0: Math.min(up.x0, lo.x0), x1: Math.max(up.x1, lo.x1), y0: Math.min(up.y0, lo.y0), y1: Math.max(up.y1, lo.y1) };
+            let ex = (U.x0 + U.x1) / 2, ey = (U.y0 + U.y1) / 2, ea = (U.x1 - U.x0) / 2, eb = (U.y1 - U.y0) / 2;
+            erase(p => { if (lab[p] !== id) return false; let ux = Math.abs((p % w) + 0.5 - ex) / ea, uy = Math.abs(((p / w) | 0) + 0.5 - ey) / eb; return ux * ux * ux + uy * uy * uy <= 1; }, U.x0, U.y0, U.x1, U.y1);
+        }
+    }
+    // (4) Hai chữ số dính nhau thành 1 khối (vd "44", "40" khi ảnh nhỏ): khối mực rộng gần bằng cao
+    //     -> cắt một khe trắng tại cột ít mực nhất ở quãng giữa để máy đọc ra 2 chữ số.
+    //     Trong 1 bóng: chỉ làm khi cả bóng có đúng 1 khối mực. Cả ảnh (không có lưới bóng): xét mọi khối đủ lớn.
+    let targets = [];
+    if (wholeImage) { for (let id = 1; id < comps.length; id++) if (comps[id].touch && (comps[id].y1 - comps[id].y0) >= 14) targets.push(id); }
+    else {
+        let bigArea = 0; for (let id = 1; id < comps.length; id++) if (comps[id].touch && comps[id].area > bigArea) bigArea = comps[id].area;
+        let main = []; for (let id = 1; id < comps.length; id++) if (comps[id].touch && comps[id].area >= 0.15 * bigArea) main.push(id);
+        if (main.length === 1) targets = main;
+    }
+    targets.forEach(id => {
+        let c = comps[id], cw = c.x1 - c.x0, ch = c.y1 - c.y0;
+        if (!(cw >= 0.95 * ch && cw <= 2.2 * ch)) return;
+        let bestX = -1, bestCnt = 1e9, mid = (c.x0 + c.x1) / 2;
+        for (let xx = Math.round(c.x0 + 0.36 * cw); xx <= Math.round(c.x0 + 0.64 * cw); xx++) {
+            let cnt = 0; for (let yy = c.y0; yy < c.y1; yy++) if (lab[yy * w + xx] === id && ink[yy * w + xx]) cnt++;
+            if (cnt < bestCnt || (cnt === bestCnt && Math.abs(xx - mid) < Math.abs(bestX - mid))) { bestCnt = cnt; bestX = xx; }
+        }
+        let half = Math.max(1, Math.round(ch * 0.04));
+        if (bestX >= 0 && bestCnt <= 0.45 * ch) erase(p => lab[p] === id, bestX - half, c.y0, bestX + half + 1, c.y1);
+    });
+}
+
+// 4c. Lọc ảnh qua Canvas
+//  - 'contrast'  : chữ tối trên nền sáng. XÓA vòng tròn/viền bóng màu nóng và hình mờ xám, chỉ giữ ngày + số.
+//                  Nếu có lưới bóng (grid): chữ trắng trong bóng tô đặc cũng được đổi thành chữ đen, và sửa số 0 gạch chéo.
+//  - 'invertball': chữ trắng trong bóng tô màu bất kỳ (xanh, tím...) -> chữ đen; nền trang trắng giữ nguyên.
+function preprocessCanvas(img, mode, scale, grid) {
+    scale = capScale(img, scale || (img.width < 700 ? 3.0 : (img.width < 1400 ? 2.0 : 1.2)));
+    let canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.width * scale));
+    canvas.height = Math.max(1, Math.round(img.height * scale));
+    let ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);   // ảnh nền trong suốt -> nền trắng
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    if (mode === 'raw') return canvas.toDataURL('image/png');
+
+    let Wd = canvas.width, Ht = canvas.height, sx = Wd / img.width, sy = Ht / img.height;
+    let imgData = ctx.getImageData(0, 0, Wd, Ht);
+    let d = imgData.data;
+
+    if (mode === 'contrast') {
+        let inBall = null;
+        if (grid && grid.lightText) {
+            inBall = new Uint8Array(Wd * Ht);
+            grid.rows.forEach(row => row.rings.forEach(rg => {
+                let ccx = (rg.x0 + rg.x1) / 2 * sx, ccy = (row.y0 + row.y1) / 2 * sy, rr = Math.min((rg.x1 - rg.x0) * sx, (row.y1 - row.y0) * sy) / 2 * 0.9;
+                for (let yy = Math.max(0, Math.floor(ccy - rr)); yy <= Math.min(Ht - 1, Math.ceil(ccy + rr)); yy++)
+                    for (let xx = Math.max(0, Math.floor(ccx - rr)); xx <= Math.min(Wd - 1, Math.ceil(ccx + rr)); xx++)
+                        if ((xx - ccx) * (xx - ccx) + (yy - ccy) * (yy - ccy) <= rr * rr) inBall[yy * Wd + xx] = 1;
+            }));
+        }
+        // Ngưỡng mực riêng cho từng bóng (số tối trong vòng tròn): lấy giữa màu chữ đậm nhất và màu nền của chính bóng đó,
+        // hơi nghiêng về phía chữ để 2 chữ số đậm không bị dính vào nhau.
+        let thrMap = null;
+        if (grid && !grid.lightText) {
+            thrMap = new Uint8Array(Wd * Ht);
+            grid.rows.forEach(row => row.rings.forEach(rg => {
+                let ccx = (rg.x0 + rg.x1) / 2 * sx, ccy = (row.y0 + row.y1) / 2 * sy, rr = Math.min((rg.x1 - rg.x0) * sx, (row.y1 - row.y0) * sy) / 2 * 0.86;
+                let ya = Math.max(0, Math.floor(ccy - rr)), yb = Math.min(Ht - 1, Math.ceil(ccy + rr)), xa = Math.max(0, Math.floor(ccx - rr)), xb = Math.min(Wd - 1, Math.ceil(ccx + rr));
+                let hist = new Int32Array(256), cnt = 0;
+                for (let yy = ya; yy <= yb; yy++) for (let xx = xa; xx <= xb; xx++) {
+                    if ((xx - ccx) * (xx - ccx) + (yy - ccy) * (yy - ccy) > rr * rr) continue;
+                    let o = (yy * Wd + xx) * 4; if (isWarm(d[o], d[o+1], d[o+2])) continue;
+                    hist[Math.round(0.299 * d[o] + 0.587 * d[o+1] + 0.114 * d[o+2])]++; cnt++;
+                }
+                if (cnt < 20) return;
+                let lo = 0, hi = 255, acc = 0;
+                for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= cnt * 0.02) { lo = v; break; } }
+                acc = 0; for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc >= cnt * 0.30) { hi = v; break; } }
+                if (hi - lo < 50) return;                                   // bóng không có chữ rõ
+                let thr = Math.max(40, Math.min(170, Math.round(lo + 0.45 * (hi - lo))));
+                for (let yy = ya; yy <= yb; yy++) for (let xx = xa; xx <= xb; xx++)
+                    if ((xx - ccx) * (xx - ccx) + (yy - ccy) * (yy - ccy) <= rr * rr) thrMap[yy * Wd + xx] = thr;
+            }));
+        }
+        for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+            let r = d[i], g = d[i+1], b = d[i+2];
+            let lum = 0.299 * r + 0.587 * g + 0.114 * b, val;
+            if (inBall && inBall[p]) val = (lum > 165 && (Math.max(r, g, b) - Math.min(r, g, b)) < 70) ? 0 : 255;   // chữ trắng trong bóng tô đặc
+            else val = (!isWarm(r, g, b) && lum < (thrMap && thrMap[p] ? thrMap[p] : 150)) ? 0 : 255;
+            d[i] = d[i+1] = d[i+2] = val; d[i+3] = 255;
+        }
+        if (grid) grid.rows.forEach(row => row.rings.forEach(rg => {
+            let pad = (rg.x1 - rg.x0) * 0.06;
+            fixSlashedZeros(d, Wd, Math.max(0, Math.round((rg.x0 + pad) * sx)), Math.max(0, Math.round((row.y0 + pad) * sy)),
+                            Math.min(Wd, Math.round((rg.x1 - pad) * sx)), Math.min(Ht, Math.round((row.y1 - pad) * sy)));
+        }));
+        else if (Wd * Ht <= 6e6) fixSlashedZeros(d, Wd, 0, 0, Wd, Ht, true);     // không có lưới bóng: làm sạch nét trên cả ảnh
+    } else {
+        // Bản đồ "điểm ảnh có màu" + ảnh tích phân để biết quanh mỗi điểm có bao nhiêu phần là màu bóng
+        let colored = new Uint8Array(Wd * Ht), integ = new Uint32Array((Wd + 1) * (Ht + 1));
+        for (let y = 0, p = 0; y < Ht; y++) {
+            let rowSum = 0;
+            for (let x = 0; x < Wd; x++, p++) {
+                let r = d[p*4], g = d[p*4+1], b = d[p*4+2];
+                let maxC = Math.max(r, g, b), minC = Math.min(r, g, b);
+                let c = (maxC - minC > 80 && maxC > 110) ? 1 : 0;
+                colored[p] = c; rowSum += c;
+                integ[(y + 1) * (Wd + 1) + x + 1] = integ[y * (Wd + 1) + x + 1] + rowSum;
+            }
+        }
+        let R = Math.max(4, Math.round(scale * 4)), W1 = Wd + 1;
+        for (let y = 0, p = 0; y < Ht; y++) {
+            let y0 = Math.max(0, y - R), y1 = Math.min(Ht, y + R + 1);
+            for (let x = 0; x < Wd; x++, p++) {
+                let x0 = Math.max(0, x - R), x1 = Math.min(Wd, x + R + 1);
+                let frac = (integ[y1 * W1 + x1] - integ[y0 * W1 + x1] - integ[y1 * W1 + x0] + integ[y0 * W1 + x0]) / ((x1 - x0) * (y1 - y0));
+                let r = d[p*4], g = d[p*4+1], b = d[p*4+2];
+                let lum = 0.299 * r + 0.587 * g + 0.114 * b, sat = Math.max(r, g, b) - Math.min(r, g, b);
+                let whiteInBall = (lum > 165 && sat < 70 && frac > 0.40);          // chữ trắng giữa vùng bóng màu
+                let darkOnPlain = (lum < 120 && !colored[p] && frac < 0.15);        // ngày tháng chữ tối trên nền trơn
+                let val = (whiteInBall || darkOnPlain) ? 0 : 255;
+                d[p*4] = d[p*4+1] = d[p*4+2] = val; d[p*4+3] = 255;
+            }
+        }
+    }
+    ctx.putImageData(imgData, 0, 0);
+    return canvas.toDataURL('image/png');
+}
+
+// ---------- ĐỌC THEO LƯỚI BÓNG (chính xác nhất): mỗi ký tự được gán vào đúng vòng tròn chứa nó ----------
+function ocrChars(data) {            // danh sách ký tự kèm tâm (x, y) trên ảnh đã phóng
+    let out = [];
+    (data && data.words || []).forEach(w => {
+        if (!w || !w.text || !w.bbox) return;
+        let t = String(w.text).replace(/\s/g, ''), n = t.length; if (!n) return;
+        let syms = (w.symbols || []).filter(s => s && s.bbox && s.text && String(s.text).trim().length === 1);
+        if (syms.length === n) syms.forEach(s => out.push({ c: String(s.text).trim(), x: (s.bbox.x0 + s.bbox.x1) / 2, y: (s.bbox.y0 + s.bbox.y1) / 2 }));
+        else for (let i = 0; i < n; i++) out.push({ c: t[i], x: w.bbox.x0 + (i + 0.5) * (w.bbox.x1 - w.bbox.x0) / n, y: (w.bbox.y0 + w.bbox.y1) / 2 });
+    });
+    return out;
+}
+// Tìm mọi ngày DD/MM/YYYY trên trang, kèm tọa độ dọc của dòng chữ chứa nó (theo ảnh đã phóng)
+function findDateIn(text) {
+    let m = /(0[1-9]|[12]\d|3[01])\s?[\/\-\.]\s?(0[1-9]|1[0-2])\s?[\/\-\.]\s?(20\d{2})/.exec(String(text || ''));
+    return m ? `${m[1]}.${m[2]}.${m[3]}` : '';
+}
+function ocrFindDates(data) {
+    let words = [];
+    (data && data.words || []).forEach(w => {
+        if (!w || !w.text || !w.bbox) return;
+        let t = String(w.text).trim(); if (!t) return;
+        words.push({ t: t, x0: w.bbox.x0, yc: (w.bbox.y0 + w.bbox.y1) / 2, h: Math.max(1, w.bbox.y1 - w.bbox.y0) });
+    });
+    if (words.length === 0) return [];
+    words.sort((a, b) => a.yc - b.yc);
+    let lines = [], cur = [words[0]], curY = words[0].yc, curH = words[0].h;
+    for (let i = 1; i < words.length; i++) {
+        let w = words[i];
+        if (Math.abs(w.yc - curY) <= Math.max(curH, w.h) * 0.5) { cur.push(w); curY = (curY * (cur.length - 1) + w.yc) / cur.length; curH = Math.max(curH, w.h); }
+        else { lines.push({ ws: cur, y: curY }); cur = [w]; curY = w.yc; curH = w.h; }
+    }
+    lines.push({ ws: cur, y: curY });
+    let out = [];
+    lines.forEach(ln => {
+        let text = ln.ws.sort((a, b) => a.x0 - b.x0).map(w => w.t).join(' ');
+        let re = /(0[1-9]|[12]\d|3[01])\s?[\/\-\.]\s?(0[1-9]|1[0-2])\s?[\/\-\.]\s?(20\d{2})/g, m;
+        while ((m = re.exec(text)) !== null) out.push({ date: `${m[1]}.${m[2]}.${m[3]}`, y: ln.y });
+    });
+    return out;
+}
+async function ocrGridRead(worker, img, grid, scale) {
+    scale = capScale(img, scale);
+    let dataUrl = preprocessCanvas(img, 'contrast', scale, grid);
+    let sx = Math.max(1, Math.round(img.width * scale)) / img.width, sy = Math.max(1, Math.round(img.height * scale)) / img.height;
+    await worker.setParameters({ tessedit_pageseg_mode: '11', tessedit_char_whitelist: '0123456789/.-', preserve_interword_spaces: '1' });
+    const ret = await worker.recognize(dataUrl);
+    let chars = ocrChars(ret.data);
+    // Ngày quay có thể nằm cùng hàng bên trái bóng (bảng web) hoặc ở dòng chữ ngay phía trên hàng bóng (app điện thoại):
+    // mỗi ngày tìm thấy được gán cho hàng bóng GẦN NÓ NHẤT theo chiều dọc.
+    let rowDate = grid.rows.map(() => null);
+    ocrFindDates(ret.data).forEach(dt => {
+        let best = -1, bd = Infinity;
+        grid.rows.forEach((row, i) => {
+            let ya = row.y0 * sy, yb = row.y1 * sy;
+            let dist = (dt.y >= ya && dt.y <= yb) ? 0 : Math.min(Math.abs(dt.y - ya), Math.abs(dt.y - yb));
+            if (dist < bd) { bd = dist; best = i; }
+        });
+        if (best >= 0 && bd <= 2.5 * grid.D * sy && (!rowDate[best] || bd < rowDate[best].dist))
+            rowDate[best] = { date: dt.date, dist: bd, off: dt.y / sy - grid.rows[best].y0 };
+    });
+    let rows = grid.rows.map((row, i) => {
+        let ya = row.y0 * sy, yb = row.y1 * sy;
+        let inRow = chars.filter(ch => ch.y >= ya && ch.y <= yb).sort((a, b) => a.x - b.x);
+        let balls = row.rings.map(rg => inRow.filter(ch => ch.x >= rg.x0 * sx && ch.x <= rg.x1 * sx).map(ch => ch.c).join(''));
+        return { date: rowDate[i] ? rowDate[i].date : '', dateOff: rowDate[i] ? rowDate[i].off : null, balls: balls };
+    });
+    return { rows: rows, dataUrl: dataUrl, sx: sx, sy: sy };
+}
+// Cắt 1 vùng của ảnh đã lọc (thêm lề trắng) rồi đọc riêng vùng đó
+function cropForOCR(srcImg, x0, y0, x1, y1) {
+    x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(srcImg.width, x1); y1 = Math.min(srcImg.height, y1);
+    let w = Math.max(1, Math.round(x1 - x0)), h = Math.max(1, Math.round(y1 - y0)), m = 16;
+    let c = document.createElement('canvas'); c.width = w + 2 * m; c.height = h + 2 * m;
+    let cx = c.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, c.width, c.height);
+    cx.drawImage(srcImg, Math.round(x0), Math.round(y0), w, h, m, m, w, h);
+    return c.toDataURL('image/png');
+}
+function loadImg(url) { return new Promise((ok, fail) => { let im = new Image(); im.onload = () => ok(im); im.onerror = fail; im.src = url; }); }
+// Chuẩn hóa 1 lần đọc của 1 bóng -> giá trị hợp lệ
+function ballCandidate(s, maxType) {
+    let t = String(s || '').replace(/\D/g, '');
+    if (t.length < 1 || t.length > 2) return null;
+    let v = parseInt(t, 10);
+    return (v >= 1 && v <= maxType) ? { v: v, wgt: 1 } : null;
+}
+// Loại vé suy ra từ ngày quay: Mega chỉ quay T4-T6-CN, Power chỉ quay T3-T5-T7 (hai lịch không trùng nhau)
+function gameFromDates(dates, cur) {
+    let c45 = 0, c55 = 0;
+    (dates || []).forEach(d => {
+        let di = dayInfo(normalizeToDDMMYYYY(d)); if (!di) return;
+        if (SCHEDULE[45].includes(di.dow)) c45++; else if (SCHEDULE[55].includes(di.dow)) c55++;
+    });
+    return c55 > c45 ? 55 : (c45 > c55 ? 45 : cur);
+}
+function majorityDate(readings, i) {
+    let dv = {}, best = '', bn = 0;
+    readings.forEach(rd => { let dt = rd[i].date; if (dt) { dv[dt] = (dv[dt] || 0) + 1; if (dv[dt] > bn) { bn = dv[dt]; best = dt; } } });
+    return { date: best, votes: bn };
+}
+function detectGameFromGrid(grid, readings, cur) {
+    let dates = []; grid.rows.forEach((row, i) => { let d = majorityDate(readings, i).date; if (d) dates.push(d); });
+    if (dates.length > 0) return gameFromDates(dates, cur);
+    if (grid.rows.every(r => r.rings.length >= 7)) return 55;          // không đọc được ngày nào: 7 bóng mỗi hàng = Power (có bóng đặc biệt)
+    return cur;
+}
+// Đổi loại vé đang chọn cho khớp với ảnh/văn bản vừa nạp
+function switchGameType(t) {
+    let sel = document.getElementById('gameType');
+    if (parseInt(sel.value) === t) return '';
+    sel.value = String(t);
+    updateAllByGameType();
+    return `🔁 Kết quả này là ${t === 55 ? 'Power 6/55' : 'Mega 6/45'} — đã tự chuyển loại vé sang ${t === 55 ? 'Power 6/55' : 'Mega 6/45'}.`;
+}
+// Bỏ phiếu giữa các lượt đọc cho từng bóng, ràng buộc 6 số tăng dần (quy hoạch động)
+function voteGrid(grid, readings, maxType) {
+    let draws = [], R = readings.length;
+    for (let i = 0; i < grid.rows.length; i++) {
+        let md = majorityDate(readings, i), date = md.date, dBest = md.votes;
+        let cand = [];
+        for (let k = 0; k < 6; k++) {
+            let m = {};
+            readings.forEach(rd => { let c = ballCandidate(rd[i].balls[k], maxType); if (c) m[c.v] = (m[c.v] || 0) + c.wgt; });
+            cand.push(Object.keys(m).map(v => ({ v: +v, s: m[v] })));
+        }
+        // best[k][j]: tổng phiếu tốt nhất khi bóng k nhận ứng viên j (luôn có lựa chọn "để trống ô" thay vì bỏ cả hàng)
+        let best = [], prev = [];
+        for (let k = 0; k < 6; k++) {
+            best.push([]); prev.push([]);
+            let opts = cand[k].concat([{ v: null, s: -1 }]);
+            cand[k] = opts;
+            opts.forEach((o, j) => {
+                let bs = (k === 0) ? 0 : -Infinity, bp = -1;
+                if (k > 0) cand[k - 1].forEach((po, pj) => {
+                    let lastV = po.v; if (lastV === null) lastV = po.carry;            // giá trị gần nhất phía trước
+                    if (o.v !== null && lastV !== null && lastV !== undefined && o.v <= lastV) return;
+                    if (best[k - 1][pj] > bs) { bs = best[k - 1][pj]; bp = pj; }
+                });
+                if (o.v === null) o.carry = (k > 0 && bp >= 0) ? (cand[k - 1][bp].v !== null ? cand[k - 1][bp].v : cand[k - 1][bp].carry) : null;
+                best[k][j] = bs + o.s; prev[k][j] = bp;
+            });
+        }
+        let j = -1, top = -Infinity; best[5].forEach((s, jj) => { if (s > top) { top = s; j = jj; } });
+        if (j < 0 || top === -Infinity) continue;
+        let nums = [], weak = false;
+        for (let k = 5; k >= 0; k--) {
+            let o = cand[k][j]; nums[k] = o.v === null ? '' : o.v;
+            if (o.v === null || o.s < Math.min(2, R)) weak = true;
+            j = prev[k][j]; if (j < 0 && k > 0) { nums = null; break; }
+        }
+        if (!nums || nums.filter(x => x !== '').length < 4) continue;
+        draws.push({ date: date || getTodayFormatted(), hasDate: !!date, numbers: nums, check: weak || !date || dBest < Math.min(2, R) });
+    }
+    return draws;
+}
+// Hai lượt đọc đã khớp nhau hoàn toàn (mọi ngày, mọi bóng) -> không cần lượt thứ 3
+function gridReadsAgree(grid, reads) {
+    let a = reads[0].rows, b = reads[1].rows;
+    for (let i = 0; i < grid.rows.length; i++) {
+        if (!a[i].date || a[i].date !== b[i].date) return false;
+        for (let k = 0; k < 6; k++) {
+            let x = String(a[i].balls[k] || '').replace(/\D/g, ''), y = String(b[i].balls[k] || '').replace(/\D/g, '');
+            if (x.length < 1 || x.length > 2 || parseInt(x, 10) !== parseInt(y, 10)) return false;
+        }
+    }
+    return true;
+}
+async function ocrGridPass(worker, img, grid, curType) {
+    let base = 120 / grid.D;                     // phóng sao cho bóng rộng ~120px (chữ số cao ~42px)
+    let reads = [];
+    for (let f of [1.0, 0.86, 1.14]) {
+        reads.push(await ocrGridRead(worker, img, grid, base * f));
+        if (reads.length === 2 && gridReadsAgree(grid, reads)) break;
+    }
+    let readings = reads.map(r => r.rows);
+    let maxType = detectGameFromGrid(grid, readings, curType);
+
+    // Ô nào chưa đủ 2 phiếu trùng nhau (máy bỏ sót hoặc các lượt lệch nhau) -> cắt riêng đúng bóng đó ra đọc lại ở từng tỉ lệ
+    let needBall = [], needDate = [];
+    grid.rows.forEach((row, i) => {
+        for (let k = 0; k < 6; k++) {
+            let m = {}, top = 0;
+            readings.forEach(rd => { let c = ballCandidate(rd[i].balls[k], maxType); if (c) { m[c.v] = (m[c.v] || 0) + c.wgt; if (m[c.v] > top) top = m[c.v]; } });
+            if (top < 2) needBall.push([i, k]);
+        }
+        if (majorityDate(readings, i).votes < 2) needDate.push(i);
+    });
+    if ((needBall.length > 0 && needBall.length <= 30) || needDate.length > 0) {
+        // Dòng ngày nằm ở đâu so với hàng bóng: học từ những hàng đã đọc được ngày
+        let offs = []; readings.forEach(rd => rd.forEach(r => { if (r.date && r.dateOff !== null) offs.push(r.dateOff); }));
+        offs.sort((a, b) => a - b);
+        let off = offs.length ? offs[Math.floor(offs.length / 2)] : null;
+        for (let rd of reads) {
+            let pre = await loadImg(rd.dataUrl);
+            let extra = grid.rows.map(() => ({ date: '', dateOff: null, balls: ['', '', '', '', '', ''] }));
+            if (needBall.length <= 30) {
+                await worker.setParameters({ tessedit_pageseg_mode: '8', tessedit_char_whitelist: '0123456789', preserve_interword_spaces: '0' });
+                for (let [i, k] of needBall) {
+                    let row = grid.rows[i], rg = row.rings[k], pad = (rg.x1 - rg.x0) * 0.08;
+                    let url = cropForOCR(pre, (rg.x0 + pad) * rd.sx, (row.y0 + pad) * rd.sy, (rg.x1 - pad) * rd.sx, (row.y1 - pad) * rd.sy);
+                    extra[i].balls[k] = String((await worker.recognize(url)).data.text || '').replace(/\D/g, '');
+                }
+            }
+            for (let i of needDate) {
+                let row = grid.rows[i], bandH = row.y1 - row.y0, strips = [];
+                let sameBand = [0, row.y0, row.rings[0].x0 - 2, row.y1, '7'];
+                if (off !== null && (off < -0.05 * bandH || off > 1.05 * bandH)) strips.push([0, row.y0 + off - 0.45 * grid.D, img.width, row.y0 + off + 0.45 * grid.D, '7']);
+                else if (off !== null) strips.push(sameBand);
+                else { strips.push(sameBand); strips.push([0, row.y0 - 1.3 * grid.D, img.width, row.y0 - 0.02 * grid.D, '6']); }
+                for (let st of strips) {
+                    if (st[2] - st[0] < 8) continue;
+                    await worker.setParameters({ tessedit_pageseg_mode: st[4], tessedit_char_whitelist: '0123456789/.-', preserve_interword_spaces: '0' });
+                    let url = cropForOCR(pre, st[0] * rd.sx, st[1] * rd.sy, st[2] * rd.sx, st[3] * rd.sy);
+                    let dt = findDateIn((await worker.recognize(url)).data.text);
+                    if (dt) { extra[i].date = dt; break; }
+                }
+            }
+            readings.push(extra);
+        }
+        maxType = detectGameFromGrid(grid, readings, maxType);
+    }
+    return { draws: voteGrid(grid, readings, maxType), type: maxType };
+}
+
+// ---------- ĐỌC TỔNG QUÁT (ảnh không có vòng tròn/bóng màu nóng): ghép hàng theo tọa độ ----------
+// Ghép các từ OCR thành từng HÀNG theo tọa độ (bảng nhiều cột hay bị đọc theo cột: hết cột ngày mới tới cột số)
+function ocrWordsToLines(data) {
+    let words = [];
+    (data && data.words || []).forEach(w => {
+        if (!w || !w.text || !w.bbox) return;
+        let t = String(w.text).trim(); if (!t) return;
+        words.push({ t: t, x0: w.bbox.x0, yc: (w.bbox.y0 + w.bbox.y1) / 2, h: Math.max(1, w.bbox.y1 - w.bbox.y0) });
+    });
+    if (words.length === 0) return { text: '', medH: 0 };
+    let hs = words.filter(w => /\d.*\d/.test(w.t)).map(w => w.h).sort((a, b) => a - b);
+    if (hs.length === 0) hs = words.map(w => w.h).sort((a, b) => a - b);
+    let medH = hs[Math.floor(hs.length / 2)];
+    words.sort((a, b) => a.yc - b.yc);
+    let rows = [], cur = [words[0]], curY = words[0].yc;
+    for (let i = 1; i < words.length; i++) {
+        let w = words[i];
+        if (Math.abs(w.yc - curY) <= medH * 0.6) { cur.push(w); curY = (curY * (cur.length - 1) + w.yc) / cur.length; }
+        else { rows.push(cur); cur = [w]; curY = w.yc; }
+    }
+    rows.push(cur);
+    return { text: rows.map(r => r.sort((a, b) => a.x0 - b.x0).map(w => w.t).join(' ')).join('\n'), medH: medH };
+}
+
+// Ưu tiên kết quả có nhiều kỳ đọc được kèm ngày
+function scoreDraws(draws) { let s = 0; (draws || []).forEach(x => s += x.hasDate ? 3 : 1); return s; }
+
+// Một lần đọc: lọc ảnh ở tỉ lệ cho trước -> Tesseract chế độ "chữ thưa" (PSM 11) -> ghép hàng theo tọa độ
+async function ocrRead(worker, img, mode, scale, whitelist, maxType) {
+    let dataUrl = preprocessCanvas(img, mode, scale);
+    await worker.setParameters({ tessedit_pageseg_mode: '11', tessedit_char_whitelist: whitelist, preserve_interword_spaces: '1' });
+    const ret = await worker.recognize(dataUrl);
+    let geo = ocrWordsToLines(ret.data);
+    let byGeo = parseOCRTextToDraws(geo.text, maxType), byText = parseOCRTextToDraws(ret.data.text, maxType);
+    return { draws: scoreDraws(byGeo) >= scoreDraws(byText) ? byGeo : byText, medH: geo.medH, dataUrl: dataUrl };
+}
+
+// Đọc 2 lượt độc lập rồi đối chiếu:
+//  - Lượt B: tỉ lệ thô, chỉ cho phép chữ số -> đồng thời đo chiều cao chữ để tính tỉ lệ tối ưu.
+//  - Lượt A: phóng sao cho chữ số cao ~40px (mức Tesseract đọc chuẩn nhất), không ép ký tự.
+async function ocrOnePass(worker, img, mode, maxType) {
+    let s0 = img.width < 700 ? 2 : 1;
+    let B = await ocrRead(worker, img, mode, s0, '0123456789/.-', maxType);
+    let s1 = B.medH > 0 ? Math.min(4, Math.max(0.5, s0 * 40 / B.medH)) : s0 * 1.5;
+    let A = await ocrRead(worker, img, mode, s1, mode === 'raw' ? '' : '0123456789/.-', maxType);
+    return { draws: mergeReadings(A.draws, B.draws), dataUrl: A.dataUrl };
+}
+
+// Gộp 2 lượt đọc: khớp nhau -> tin cậy; lệch nhau hoặc chỉ 1 lượt đọc được -> đánh dấu check để người dùng soát
+function mergeReadings(A, B) {
+    let sig = x => x.numbers.join('-');
+    let bSigs = new Set(B.map(sig)), bByDate = {};
+    B.forEach(x => { if (x.hasDate) bByDate[x.date] = x; });
+    let out = [], seenDate = new Set(), seenSig = new Set();
+    A.forEach(a => {
+        let b = a.hasDate ? bByDate[a.date] : null;
+        let agree = bSigs.has(sig(a)) && (!b || sig(b) === sig(a));
+        if (!agree && b && b.inc && !a.inc) a = b;              // lệch nhau: tin lượt có 6 số tăng dần tự nhiên
+        a.check = !agree || !a.hasDate;
+        out.push(a); seenSig.add(sig(a)); if (a.hasDate) seenDate.add(a.date);
+    });
+    B.forEach(b => {
+        if (seenSig.has(sig(b))) return;
+        if (b.hasDate ? seenDate.has(b.date) : A.length > 0) return;
+        b.check = true; out.push(b); seenSig.add(sig(b)); if (b.hasDate) seenDate.add(b.date);
+    });
+    return out;
+}
+
+// 5. Thực thi OCR bằng Tesseract.js — theo LÔ: nhiều ảnh một lượt, dùng chung 1 worker, gom kết quả vào 1 bảng kiểm duyệt
+// Đọc 1 ảnh -> { draws, type (45|55 suy ra từ ảnh), previewUrl }.  Không đụng tới giao diện.
+async function ocrImage(worker, img, filterMode, hintType, setStage) {
+    let type = hintType, draws = [], previewUrl = null;
+    let grid = (filterMode === 'dual' || filterMode === 'contrast') ? detectBallGrid(img) : null;
+    if (grid) {
+        setStage(`thấy ${grid.rows.length} hàng bóng, đọc từng bóng rồi bỏ phiếu`);
+        let gr = await ocrGridPass(worker, img, grid, type);
+        draws = gr.draws;
+        if (draws.length > 0) type = gr.type;
+    }
+    if (draws.length === 0) {
+        async function generic(t) {
+            if (filterMode === 'dual') {
+                setStage('xóa vòng tròn màu, đọc ngày + số');
+                let out = (await ocrOnePass(worker, img, 'contrast', t)).draws;
+                if (out.length < 2) {                 // không ra bảng -> thử kiểu bóng tô đặc chữ trắng
+                    setStage('tách số trắng trong bóng màu');
+                    let r2 = await ocrOnePass(worker, img, 'invertball', t);
+                    if (scoreDraws(r2.draws) > scoreDraws(out)) out = r2.draws;
+                }
+                return out;
+            }
+            setStage('đang đọc số từ ảnh');
+            let r = await ocrOnePass(worker, img, filterMode, t);
+            previewUrl = r.dataUrl;
+            return r.draws;
+        }
+        draws = await generic(type);
+        let t2 = gameFromDates(draws.filter(d => d.hasDate).map(d => d.date), type);
+        if (t2 !== type) { type = t2; draws = await generic(t2); }      // ngày quay cho thấy đây là loại vé kia -> đọc lại đúng dải số
+    }
+    return { draws: draws, type: type, previewUrl: previewUrl };
+}
+
+// Nhận ảnh mới: đang đọc dở thì xếp thêm vào hàng chờ của lô hiện tại, không thì mở lô mới
+function queueImagesForOCR(blobs) {
+    blobs = (blobs || []).filter(b => b && (!b.type || b.type.indexOf('image') === 0));
+    if (blobs.length === 0) return;
+    if (ocrBusy) { blobs.forEach(b => ocrQueue.push(b)); return; }
+    runOCRBatch(blobs, false);
+}
+
+function addOCRThumb(url, no) {
+    let box = document.createElement('div'); box.className = 'ocr-thumb';
+    box.innerHTML = `<img src="${url}" alt="Ảnh ${no}"><span>${no}</span>`;
+    box.onclick = () => box.classList.toggle('big');          // chạm để phóng to / thu nhỏ khi cần so số
+    document.getElementById('ocrThumbs').appendChild(box);
+    return box;
+}
+function clearOCRSession() {
+    ocrSession = [];
+    ocrThumbUrls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} });
+    ocrThumbUrls = [];
+    document.getElementById('ocrThumbs').innerHTML = '';
+}
+
+// replace = true: bỏ bảng cũ, đọc lại từ đầu.  replace = false: nếu bảng kiểm duyệt đang mở thì CỘNG THÊM kết quả vào bảng
+async function runOCRBatch(blobs, replace) {
+    ocrBusy = true;
+    resetPasteCatcherText();
+    let statusEl = document.getElementById('ocrStatus'), previewWrap = document.getElementById('ocrPreviewWrap');
+    let panelOpen = previewWrap.style.display === 'block' && document.querySelectorAll('#stagingList .staging-row').length > 0;
+    let kept = [];
+    if (!replace && panelOpen) kept = readStagingRows().filter(d => d.numbers.some(x => x !== ''));   // giữ nguyên các dòng đang có, kể cả chỗ đã sửa tay
+    else clearOCRSession();
+
+    ocrQueue = blobs.slice();
+    let baseIdx = ocrSession.length;
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = '⏳ Đang xử lý điểm ảnh & khởi chạy AI OCR...';
+    previewWrap.style.display = 'block';
+
+    let draws = [], failed = 0, libError = false, worker = null;
+    let stage = '', passNo = 0, curIdx = 0;
+    let hint = parseInt(document.getElementById('gameType').value);
+    let filterMode = document.getElementById('ocrFilterMode').value;
+    try {
+        // Tạo Worker với cacheMethod: 'none' để không bị lỗi bảo mật trên giao thức content:// của Android
+        worker = await Tesseract.createWorker('eng', 1, {
+            cacheMethod: 'none',
+            logger: m => {
+                if (m.status === 'recognizing text') {
+                    if (m.progress < 0.05) passNo++;
+                    statusEl.innerHTML = `🔍 Ảnh ${curIdx + 1}/${ocrQueue.length} · ${stage} · lượt ${Math.max(1, passNo)}: ${Math.round(m.progress * 100)}%` +
+                        (draws.length > 0 ? `<br>Đã đọc được ${draws.length} kỳ` : '');
+                }
+            }
+        });
+        for (let i = 0; i < ocrQueue.length; i++) {              // ocrQueue có thể dài thêm trong lúc chạy (dán tiếp ảnh)
+            curIdx = i; passNo = 0; stage = 'đang mở ảnh';
+            let blob = ocrQueue[i], no = baseIdx + i + 1;
+            ocrSession.push(blob);
+            let url = URL.createObjectURL(blob); ocrThumbUrls.push(url);
+            let thumb = addOCRThumb(url, no);
+            statusEl.innerHTML = `🔍 Ảnh ${i + 1}/${ocrQueue.length} · đang mở ảnh...` + (draws.length > 0 ? `<br>Đã đọc được ${draws.length} kỳ` : '');
+            try {
+                let img = await loadImg(url);
+                let res = await ocrImage(worker, img, filterMode, hint, s => { stage = s; });
+                hint = res.type;
+                res.draws.forEach(d => { d.type = res.type; d.src = no; draws.push(d); });
+                if (res.previewUrl) thumb.querySelector('img').src = res.previewUrl;       // chế độ lọc thủ công: xem ảnh máy nhìn thấy
+                if (res.draws.length === 0) { failed++; thumb.classList.add('fail'); }
+            } catch (e) { console.error(e); failed++; thumb.classList.add('fail'); }
+        }
+    } catch (err) {
+        console.error(err);
+        libError = true;
+    }
+    try { if (worker) await worker.terminate(); } catch (e) {}
+    ocrBusy = false;
+
+    if (libError && draws.length === 0 && kept.length === 0) {
+        statusEl.innerHTML = `<span style="color:#ff7b72;">⚠️ Lỗi OCR: Không thể tải thư viện AI (kiểm tra kết nối 4G/Wifi). Bạn vẫn có thể bấm '+ Thêm dòng' để nhập tay.</span>`;
+        renderStagingTable([]);
+        return;
+    }
+    statusEl.style.display = 'none';
+    showStagedDraws(kept.concat(draws), failed);
+}
+
+// Gộp kết quả của cả lô: bỏ kỳ trùng (2 ảnh chụp gối nhau), sắp theo loại vé rồi ngày mới -> cũ
+function mergeStagedDraws(draws) {
+    let byKey = {}, out = [];
+    draws.forEach(d => {
+        if (!d.hasDate) { out.push(d); return; }
+        let key = d.type + '|' + d.date, old = byKey[key];
+        if (!old) { byKey[key] = d; out.push(d); return; }
+        if (old.numbers.join('-') === d.numbers.join('-')) { if (!d.check) old.check = false; return; }      // 2 ảnh đọc ra giống nhau -> càng chắc
+        if (old.check && !d.check) { out[out.indexOf(old)] = d; byKey[key] = d; }                                // lệch nhau: giữ bản không bị nghi ngờ
+        else if (old.check === d.check) old.check = true;
+    });
+    return out;
+}
+function showStagedDraws(draws, failed) {
+    let merged = mergeStagedDraws(draws);
+    let cur = parseInt(document.getElementById('gameType').value);
+    let n45 = merged.filter(d => d.type === 45).length, n55 = merged.filter(d => d.type === 55).length;
+    let main = (cur === 45 ? n45 : n55) > 0 ? cur : (n55 > n45 ? 55 : (n45 > 0 ? 45 : cur));
+    let notice = '';
+    if (n45 > 0 && n55 > 0) notice = `📦 Lô này có cả Mega 6/45 (${n45} kỳ) và Power 6/55 (${n55} kỳ) — mỗi kỳ sẽ được nạp vào đúng kho của nó.`;
+    if (main !== cur) { let sw = switchGameType(main); if (!notice) notice = sw; }
+    if (failed > 0) notice += (notice ? '<br>' : '') + `<span style="color:#d29922;">⚠️ ${failed} ảnh không đọc ra kỳ nào (viền đỏ ở trên).</span>`;
+    merged.sort((a, b) => {
+        if (a.type !== b.type) return a.type === main ? -1 : (b.type === main ? 1 : a.type - b.type);
+        if (a.hasDate !== b.hasDate) return a.hasDate ? -1 : 1;
+        return getTimestamp(b.date) - getTimestamp(a.date);
+    });
+    ocrNotice = notice;
+    renderStagingTable(merged);
+}
+
+// 6. Thuật toán Bóc Tách Ngày Quay & 6 Số Trúng Thưởng từ Văn Bản (OCR hoặc copy từ web)
+function parseOCRTextToDraws(rawText, maxType) {
+    if (!rawText) return [];
+    let allExtracted = [];
+    let lines = String(rawText).split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    let currentPendingDate = "";
+    let numberBuffer = [];
+
+    for (let idx = 0; idx < lines.length; idx++) {
+        let line = lines[idx];
+
+        // Sửa các lỗi nhận diện ký tự phổ biến của OCR khi đọc số
+        let cleanedLine = line
+            .replace(/\|/g, ' ')                       // vạch ngăn bóng đặc biệt của Power 6/55
+            .replace(/[oO]/g, '0')
+            .replace(/(?<=\d)[DQ]|[DQ](?=\d)/g, '0')
+            .replace(/(?<=\d)[Il]|[Il](?=\d)/g, '1')
+            .replace(/(?<=\d)[Zz]|[Zz](?=\d)/g, '2')
+            .replace(/(?<=\d)[Ss]|[Ss](?=\d)/g, '5')
+            .replace(/(?<=\d)B|B(?=\d)/g, '8')
+            .replace(/(?<=\d)[gq]|[gq](?=\d)/g, '9');
+
+        // 1. Tìm Ngày Quay (DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY). Bắt buộc năm 4 chữ số để dãy "05-12-23-34-41-45" không bị hiểu nhầm là ngày.
+        let dateRegex = /(?<!\d)(0?[1-9]|[12]\d|3[01])\s?[\/\-\.]\s?(0?[1-9]|1[0-2])\s?[\/\-\.]\s?(20\d{2})(?!\d)/;
+        let dateMatch = dateRegex.exec(cleanedLine);
+        let lineHasDate = false;
+        if (dateMatch) {
+            let normD = normalizeToDDMMYYYY(`${dateMatch[1]}.${dateMatch[2]}.${dateMatch[3]}`);
+            if (normD) {
+                currentPendingDate = normD; lineHasDate = true;
+                numberBuffer = []; // Reset buffer số khi gặp ngày mới
+            }
+            // Xóa ngày, và xóa luôn mã kỳ quay đứng ngay sau ngày (01587, #01587, hoặc bị đọc cụt thành 0158 / 587)
+            let before = cleanedLine.slice(0, dateMatch.index), after = cleanedLine.slice(dateMatch.index + dateMatch[0].length);
+            cleanedLine = before + ' ' + after.replace(/^\s*#?(?:\d{3,6}|0\d?\s\d{3,4})\D?(?=\s|$)/, ' ');
+        }
+
+        // 2. Xóa các chuỗi số không phải bóng Vietlott:
+        // - Dòng chỉ có đúng 1 mã kỳ quay (khi bảng bị đọc theo cột)
+        if (/^#?\d{3,6}\D?$/.test(cleanedLine.trim())) continue;
+        // - Xóa số tiền thưởng (VD: 30.000.000.000 hoặc 12,345,678)
+        cleanedLine = cleanedLine.replace(/\b\d{1,3}(?:[\.,]\d{3}){2,}\b/g, ' ');
+        // - Xóa tên giải (6/55, 6/45)
+        cleanedLine = cleanedLine.replace(/6\s*[\/\\]\s*(45|55)/g, ' ');
+        // - Xóa năm đứng lẻ (2024, 2025...) ở những dòng không có ngày đầy đủ
+        if (!lineHasDate) cleanedLine = cleanedLine.replace(/\b20\d{2}\b/g, ' ');
+        // - Cụm số dính liền: độ dài chẵn -> tách từng cặp (031114232543 -> 03 11 14 23 25 43, 2325 -> 23 25);
+        //   độ dài lẻ từ 3 trở lên (mã kỳ quay 01587, hoặc cụm đọc hỏng) -> bỏ
+        cleanedLine = cleanedLine.replace(/\d{3,}/g, m => (m.length % 2 === 0 && m.length <= 14) ? m.match(/\d{2}/g).join(' ') : ' ');
+
+        // 3. Tìm tất cả các số có 1-2 chữ số nằm trong phạm vi [1..maxType]
+        let tokens = cleanedLine.match(/\b\d{1,2}\b/g) || [];
+        let validNumsInLine = tokens.map(Number).filter(n => n >= 1 && n <= maxType);
+
+        if (validNumsInLine.length >= 6) {
+            let best6 = extractBest6Balls(validNumsInLine, maxType);
+            if (best6) {
+                allExtracted.push({ date: currentPendingDate || getTodayFormatted(), hasDate: !!currentPendingDate, numbers: best6.nums, inc: best6.inc });
+                currentPendingDate = "";
+                numberBuffer = [];
+            }
+        } else if (validNumsInLine.length > 0 && currentPendingDate) {
+            numberBuffer.push(...validNumsInLine);
+            if (numberBuffer.length >= 6) {
+                let best6 = extractBest6Balls(numberBuffer, maxType);
+                if (best6) {
+                    allExtracted.push({ date: currentPendingDate, hasDate: true, numbers: best6.nums, inc: best6.inc });
+                    currentPendingDate = "";
+                    numberBuffer = [];
+                }
+            }
+        }
+    }
+
+    // Khử trùng lặp: mỗi bộ số chỉ giữ 1 lần, mỗi ngày quay chỉ giữ 1 kỳ
+    let uniqueDraws = [], seenSig = new Set(), seenDate = new Set();
+    allExtracted.forEach(item => {
+        let sig = item.numbers.join('-');
+        if (seenSig.has(sig)) return;
+        if (item.hasDate && seenDate.has(item.date)) return;
+        seenSig.add(sig); if (item.hasDate) seenDate.add(item.date);
+        uniqueDraws.push(item);
+    });
+    return uniqueDraws;
+}
+
+// Bóng luôn nằm CUỐI hàng (sau ngày và mã kỳ) và xếp tăng dần; Power 6/55 có thêm bóng đặc biệt thứ 7 ở cuối.
+// => ưu tiên cửa sổ 6 số tăng dần sát mép phải, rồi mới dò từ trái sang. Trả về {nums, inc}
+function extractBest6Balls(arr, maxType) {
+    function inc(i) {
+        if (i < 0 || i + 6 > arr.length) return null;
+        for (let j = i; j < i + 5; j++) if (arr[j + 1] <= arr[j]) return null;
+        return arr.slice(i, i + 6);
+    }
+    let L = arr.length;
+    let order = (maxType === 55) ? [L - 7, L - 6] : [L - 6, L - 7];
+    for (let i of order) { let w = inc(i); if (w) return { nums: w, inc: true }; }
+    for (let i = 0; i <= L - 6; i++) { let w = inc(i); if (w) return { nums: w, inc: true }; }
+    // Không có dãy tăng dần (nguồn liệt kê theo thứ tự quay): lấy 6 số đầu tiên không trùng nhau
+    let uniq = [];
+    for (let n of arr) {
+        if (!uniq.includes(n)) uniq.push(n);
+        if (uniq.length === 6) return { nums: uniq.sort((a,b) => a - b), inc: false };
+    }
+    return null;
+}
+
+function getTodayFormatted() {
+    let d = new Date();
+    return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+}
+
+// 7. Hiển thị Bảng Kiểm Duyệt (Staging Table) để người dùng xem & chỉnh sửa trước khi lưu
+const GAME_NAME = { 45: 'Mega 6/45', 55: 'Power 6/55' };
+function renderStagingTable(draws) {
+    let listEl = document.getElementById('stagingList');
+    let countEl = document.getElementById('ocrDetectedCount');
+    let wrapEl = document.getElementById('ocrPreviewWrap');
+    let curType = parseInt(document.getElementById('gameType').value);
+    wrapEl.style.display = 'block';
+    listEl.innerHTML = '';
+    let showMeta = false;
+
+    if (draws.length === 0) {
+        countEl.innerHTML = (ocrNotice ? `${ocrNotice}<br>` : '') + `<span style="color:#d29922;">⚠️ Chưa bóc tách tự động được đủ 6 số. Hãy thử đổi 'Chế độ lọc bóng số' phía trên hoặc nhập vào dòng dưới:</span>`;
+        draws = [{ date: getTodayFormatted(), numbers: ['', '', '', '', '', ''], type: curType }];
+    } else {
+        let offDay = 0, types = {};
+        draws.forEach(d => {
+            if (!d.type) d.type = curType;
+            types[d.type] = 1;
+            if (d.check === undefined) d.check = (d.hasDate === false);
+            let di = dayInfo(normalizeToDDMMYYYY(d.date)), sch = SCHEDULE[d.type] || [];
+            if (di && sch.length && !sch.includes(di.dow)) { d.check = true; offDay++; }
+        });
+        // Lô nhiều ảnh hoặc lẫn 2 loại vé: mỗi dòng hiện nhãn loại vé + số thứ tự ảnh
+        showMeta = Object.keys(types).length > 1 || ocrSession.length > 1;
+        let flagged = draws.filter(d => d.check).length;
+        countEl.innerHTML = (ocrNotice ? `<span style="color:#58a6ff;">${ocrNotice}</span><br>` : '') +
+            `✅ Đã bóc tách: ${draws.length} kỳ quay` + (ocrSession.length > 1 ? ` từ ${ocrSession.length} ảnh` : '') +
+            (flagged > 0 ? ` · <span style="color:#d29922;">⚠️ ${flagged} dòng viền vàng cần so lại với ảnh</span>` : ` · đã đối chiếu khớp`) +
+            (offDay > 0 && offDay * 2 >= draws.length ? `<br><span style="color:#ff7b72;">Nhiều ngày không khớp lịch quay (Mega: T4-T6-CN, Power: T3-T5-T7) — kiểm tra lại ngày hoặc loại vé của từng dòng.</span>` : '');
+        // Nếu chỉ có 1 kỳ quay, tự động điền luôn xuống ô nhập chính bên dưới cho tiện
+        if (draws.length === 1 && draws[0].numbers[0] !== '' && draws[0].type === curType) {
+            document.getElementById('dateBox').value = draws[0].date;
+            for (let i = 0; i < 6; i++) {
+                document.getElementById('s' + (i + 1)).value = draws[0].numbers[i];
+            }
+        }
+    }
+
+    draws.forEach(d => appendStagingRowDOM(d, showMeta));
+    ocrNotice = '';
+}
+
+function appendStagingRowDOM(d, showMeta) {
+    let listEl = document.getElementById('stagingList');
+    let row = document.createElement('div'), nums = d.numbers || [];
+    let type = d.type || parseInt(document.getElementById('gameType').value);
+    row.className = 'staging-row' + (d.check ? ' check' : '');
+    row.dataset.type = String(type);
+    if (d.src) row.dataset.src = String(d.src);
+    if (d.hasDate === false) row.dataset.nodate = '1';
+    let cells = '';
+    for (let i = 0; i < 6; i++) cells += `<input type="number" class="st-num" value="${nums[i] !== undefined ? nums[i] : ''}" placeholder="S${i + 1}">`;
+    row.innerHTML =
+        (showMeta ? `<div class="st-meta"><button class="st-type" title="Chạm để đổi loại vé của dòng này" onclick="toggleRowType(this)">${GAME_NAME[type]}</button>${d.src ? `<span>ảnh ${d.src}</span>` : ''}</div>` : '') +
+        `<input type="text" class="st-date" value="${d.date}" placeholder="DD.MM.YYYY" oninput="delete this.parentElement.dataset.nodate">` + cells +
+        `<button class="staging-del" onclick="this.parentElement.remove()">✕</button>`;
+    listEl.appendChild(row);
+}
+function toggleRowType(btn) {
+    let row = btn.closest('.staging-row'), t = row.dataset.type === '55' ? 45 : 55;
+    row.dataset.type = String(t); btn.textContent = GAME_NAME[t];
+}
+// Đọc lại các dòng đang có trên bảng (giữ mọi chỗ người dùng đã sửa) để gộp với ảnh quét thêm
+function readStagingRows() {
+    let out = [];
+    document.querySelectorAll('#stagingList .staging-row').forEach(row => {
+        let nums = []; row.querySelectorAll('.st-num').forEach(inp => { let v = parseInt(inp.value); nums.push(isNaN(v) ? '' : v); });
+        let dt = normalizeToDDMMYYYY(row.querySelector('.st-date').value.trim());
+        out.push({ type: parseInt(row.dataset.type) || parseInt(document.getElementById('gameType').value), src: row.dataset.src ? parseInt(row.dataset.src) : undefined,
+                   date: dt || row.querySelector('.st-date').value.trim(), hasDate: !!dt && !row.dataset.nodate, numbers: nums, check: row.classList.contains('check') });
+    });
+    return out;
+}
+
+function addEmptyStagingRow() {
+    appendStagingRowDOM({ date: getTodayFormatted(), numbers: ['', '', '', '', '', ''], type: parseInt(document.getElementById('gameType').value) },
+                        !!document.querySelector('#stagingList .st-meta'));
+}
+
+function closeOCRPreview() {
+    document.getElementById('ocrPreviewWrap').style.display = 'none';
+    document.getElementById('stagingList').innerHTML = '';
+    clearOCRSession();
+}
+// Người dùng tự đổi loại vé khi bảng kiểm duyệt không hiện nhãn từng dòng -> cả bảng theo loại vé mới chọn
+document.getElementById('gameType').addEventListener('change', function () {
+    if (document.querySelector('#stagingList .st-meta')) return;
+    document.querySelectorAll('#stagingList .staging-row').forEach(row => { row.dataset.type = this.value; });
+});
+
+// 8. Lưu toàn bộ các kỳ trong Bảng Kiểm Duyệt vào hệ thống & Chạy Hậu Kiểm kỳ mới nhất (mỗi loại vé vào đúng kho của nó)
+function commitStagingDraws() {
+    const rows = document.querySelectorAll('#stagingList .staging-row');
+    if (rows.length === 0) return;
+    const sel = document.getElementById('gameType');
+    const startType = parseInt(sel.value);
+
+    let groups = { 45: [], 55: [] };
+    for (let r = 0; r < rows.length; r++) {
+        let type = parseInt(rows[r].dataset.type) || startType, label = `Dòng ${r+1} (${GAME_NAME[type]})`;
+        let dateRaw = rows[r].querySelector('.st-date').value.trim();
+        let finalDate = normalizeToDDMMYYYY(dateRaw);
+        if (!finalDate) {
+            alert(`${label}: Định dạng ngày '${dateRaw}' không hợp lệ!`);
+            return;
+        }
+        let numInputs = rows[r].querySelectorAll('.st-num');
+        let nums = [];
+        for (let i = 0; i < 6; i++) {
+            let v = parseInt(numInputs[i].value);
+            if (isNaN(v) || v <= 0 || v > type) {
+                alert(`${label}, ngày ${finalDate}: Số thứ ${i+1} không hợp lệ (Phải từ 1 đến ${type})!`);
+                return;
+            }
+            nums.push(v);
+        }
+        if (new Set(nums).size < 6) {
+            alert(`${label}, ngày ${finalDate}: Có số bị trùng lặp!`);
+            return;
+        }
+        nums.sort((a,b) => a - b);
+        let dup = groups[type].find(x => x.date === finalDate);
+        if (dup) {
+            alert(`${label} trùng ngày ${finalDate} với dòng ${dup.rowNo}. Mỗi kỳ quay phải có 1 ngày riêng — hãy sửa lại ô ngày (dòng viền vàng) rồi nạp lại.`);
+            return;
+        }
+        groups[type].push({ type: '6/' + type, date: finalDate, numbers: nums, rowNo: r + 1 });
+    }
+
+    // Loại vé đang chọn được nạp SAU CÙNG để màn hình dừng lại ở đó
+    let order = [45, 55].filter(t => groups[t].length > 0).sort((a, b) => (a === startType) - (b === startType));
+    let summary = [];
+    closeOCRPreview();
+    order.forEach(type => {
+        let toSave = groups[type].map(x => ({ type: x.type, date: x.date, numbers: x.numbers }));
+        // Sắp xếp các kỳ mới quét từ cũ đến mới theo thời gian để nạp tuần tự
+        toSave.sort((a,b) => getTimestamp(a.date) - getTimestamp(b.date));
+        let allData = JSON.parse(localStorage.getItem(KEY) || '[]');
+        let newestDraw = toSave[toSave.length - 1];
+
+        // Nạp các kỳ trước kỳ mới nhất vào kho
+        for (let i = 0; i < toSave.length - 1; i++) {
+            let item = toSave[i];
+            let existingIdx = allData.findIndex(d => d.date === item.date && d.type === item.type);
+            if (existingIdx === -1) allData.push(item);
+            else allData[existingIdx].numbers = item.numbers;
+        }
+        // Đưa kỳ mới nhất vào hàm Hậu Kiểm & Lưu chính thức để hiển thị Báo cáo Thứ hạng
+        let existLatestIdx = allData.findIndex(d => d.date === newestDraw.date && d.type === newestDraw.type);
+        if (existLatestIdx !== -1) allData.splice(existLatestIdx, 1);
+        localStorage.setItem(KEY, JSON.stringify(allData));
+
+        sel.value = String(type);
+        document.getElementById('dateBox').value = newestDraw.date;
+        for (let i = 0; i < 6; i++) document.getElementById('s' + (i + 1)).value = newestDraw.numbers[i];
+        saveData(); // Tự động chạy Hậu kiểm V10 trên kỳ mới nhất và cập nhật toàn bộ bảng dự đoán
+        summary.push(`${toSave.length} kỳ ${GAME_NAME[type]} (mới nhất ${newestDraw.date})`);
+    });
+    if (rows.length > 1) alert(`Đã nạp thành công ${summary.join(' và ')}, đã chạy Hậu kiểm cho kỳ mới nhất.`);
+}
+
+// =========================================================================
+// LÕI TOÁN HỌC V10: TỔ HỢP TÍN HIỆU TỰ HỌC
+//  - Mỗi tín hiệu (tần suất, độ trễ, Markov, Ngũ hành Can–Chi, Âm Dương...) được
+//    chuẩn hóa z-score rồi HẬU KIỂM TIẾN (walk-forward) trên toàn bộ lịch sử:
+//    kỳ nào cũng chỉ được dùng dữ liệu của các kỳ trước nó.
+//  - Trọng số = ước lượng Bayes (hồi quy ridge, 1 bước Newton của mô hình logit
+//    có điều kiện). Tín hiệu không có bằng chứng tự co về 0, tín hiệu có bằng
+//    chứng tự được khuếch đại.
+//  - Tìm tổ hợp: vét cạn pool 32 số + Luyện kim mô phỏng (Boltzmann) toàn bản đồ.
+// =========================================================================
+const K_DRAW = 6;
+const SCHEDULE = { 45: [0, 3, 5], 55: [2, 4, 6] };   // 0=CN ... 6=T7  (Mega: T4-T6-CN, Power: T3-T5-T7)
+const THU = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+const CAN = ['Giáp', 'Ất', 'Bính', 'Đinh', 'Mậu', 'Kỷ', 'Canh', 'Tân', 'Nhâm', 'Quý'];
+const CHI = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
+// Thứ tự tương sinh: Mộc -> Hỏa -> Thổ -> Kim -> Thủy -> Mộc.  i sinh (i+1)%5, i khắc (i+2)%5
+const HANH = ['Mộc', 'Hỏa', 'Thổ', 'Kim', 'Thủy'];
+const CAN_HANH = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4];
+const CHI_HANH = [4, 2, 0, 0, 2, 1, 1, 2, 3, 3, 2, 4];
+// Hà Đồ: đuôi 1,6 Thủy - 2,7 Hỏa - 3,8 Mộc - 4,9 Kim - 5,0 Thổ
+const NUM_HANH = [2, 4, 1, 0, 3, 2, 4, 1, 0, 3];
+const HANH_DUOI = ['3, 8', '2, 7', '0, 5', '4, 9', '1, 6'];
+// Vượng (cùng hành ngày) - Tướng (ngày sinh số) - Hưu (số sinh ngày) - Tù (số khắc ngày) - Tử (ngày khắc số)
+const REL_NAME = ['Vượng', 'Tướng', 'Hưu', 'Tù', 'Tử'];
+const REL_OF_DIFF = [0, 1, 4, 3, 2];                  // (hành số - hành ngày) mod 5 -> quan hệ
+const REL_TO_DIFF = [0, 1, 4, 3, 2];                  // quan hệ -> (hành số - hành ngày) mod 5
+
+const FEATS = [
+    { name: 'Tần suất dài hạn',        sub: 'Thiên lệch vật lý của bóng / lồng quay',  prior: 0.03 },
+    { name: 'Động lượng ngắn hạn',     sub: 'Trung bình mũ, bán rã ~17 kỳ',            prior: 0.01 },
+    { name: 'Áp lực độ trễ',           sub: 'Phân phối hình học của khoảng vắng',      prior: 0 },
+    { name: 'Cộng hưởng chu kỳ Poisson', sub: 'Độ trễ khớp chu kỳ riêng của từng số', prior: 0.01 },
+    { name: 'Lặp lại kỳ trước',        sub: 'Số vừa về có về tiếp không',              prior: 0 },
+    { name: 'Lân cận ±1 kỳ trước',     sub: 'Số kề bên số vừa về',                     prior: 0 },
+    { name: 'Chuỗi Markov bậc 1',      sub: 'Ma trận chuyển tiếp kỳ → kỳ',             prior: 0 },
+    { name: 'Ngũ hành Thiên Can',      sub: 'Vượng – Tướng – Hưu – Tù – Tử theo Can ngày', prior: 0 },
+    { name: 'Ngũ hành Địa Chi',        sub: 'Vượng – Tướng – Hưu – Tù – Tử theo Chi ngày', prior: 0 },
+    { name: 'Âm Dương ngày',           sub: 'Can dương/âm × số lẻ/chẵn',               prior: 0 }
+];
+const PRIOR_STRUCT = 0.08;      // tiên nghiệm kế thừa V9.1 cho tầng cấu trúc Delta–Gauss–Gail Howard
+const PRIOR_DRAWS = 150;        // độ mạnh tiên nghiệm, tính bằng "số kỳ tương đương"
+const TOP_M = 12;               // số lượng "số mạnh" dùng để hậu kiểm
+
+// ----------------------------- Tiện ích toán -----------------------------
+function mulberry32(a) {
+    return function () {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+function normalCdf(z) {
+    let x = Math.abs(z) / Math.SQRT2, t = 1 / (1 + 0.3275911 * x);
+    let erf = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+    return z >= 0 ? 0.5 * (1 + erf) : 0.5 * (1 - erf);
+}
+function logGamma(x) {
+    const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+    let y = x, tmp = x + 5.5; tmp -= (x + 0.5) * Math.log(tmp);
+    let ser = 1.000000000190015;
+    for (let j = 0; j < 6; j++) { y += 1; ser += c[j] / y; }
+    return -tmp + Math.log(2.5066282746310005 * ser / x);
+}
+// Q(a,x): hàm gamma không hoàn chỉnh trên đã chuẩn hóa -> p-value của chi bình phương
+function gammaQ(a, x) {
+    if (x <= 0) return 1;
+    if (x < a + 1) {
+        let ap = a, sum = 1 / a, del = sum;
+        for (let n = 0; n < 500; n++) { ap += 1; del *= x / ap; sum += del; if (Math.abs(del) < Math.abs(sum) * 1e-13) break; }
+        return Math.max(0, 1 - sum * Math.exp(-x + a * Math.log(x) - logGamma(a)));
+    }
+    let b = x + 1 - a, c = 1e300, d = 1 / b, h = d;
+    for (let i = 1; i < 500; i++) {
+        let an = -i * (i - a); b += 2;
+        d = an * d + b; if (Math.abs(d) < 1e-300) d = 1e-300;
+        c = b + an / c; if (Math.abs(c) < 1e-300) c = 1e-300;
+        d = 1 / d; let del = d * c; h *= del;
+        if (Math.abs(del - 1) < 1e-13) break;
+    }
+    return Math.exp(-x + a * Math.log(x) - logGamma(a)) * h;
+}
+function chi2P(x, df) { return gammaQ(df / 2, x / 2); }
+
+function solveLinear(A, b) {            // Gauss–Jordan có chọn trụ
+    let n = b.length, M = [];
+    for (let i = 0; i < n; i++) { let row = new Float64Array(n + 1); for (let k = 0; k < n; k++) row[k] = A[i][k]; row[n] = b[i]; M.push(row); }
+    for (let c = 0; c < n; c++) {
+        let p = c;
+        for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+        if (Math.abs(M[p][c]) < 1e-12) continue;
+        let tmp = M[c]; M[c] = M[p]; M[p] = tmp;
+        let piv = M[c][c];
+        for (let k = c; k <= n; k++) M[c][k] /= piv;
+        for (let r = 0; r < n; r++) {
+            if (r === c) continue;
+            let f = M[r][c]; if (f === 0) continue;
+            for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k];
+        }
+    }
+    let out = new Float64Array(n);
+    for (let i = 0; i < n; i++) out[i] = M[i][n];
+    return out;
+}
+function zScoreInPlace(arr, N) {
+    let s = 0; for (let n = 1; n <= N; n++) s += arr[n];
+    let mu = s / N, v = 0;
+    for (let n = 1; n <= N; n++) { let d = arr[n] - mu; v += d * d; }
+    let sd = Math.sqrt(v / N);
+    if (sd < 1e-12) { for (let n = 1; n <= N; n++) arr[n] = 0; return; }
+    for (let n = 1; n <= N; n++) arr[n] = (arr[n] - mu) / sd;
+}
+function randCombo(N, rng) {
+    let c = [];
+    while (c.length < 6) { let x = 1 + Math.floor(rng() * N); if (!c.includes(x)) c.push(x); }
+    return c.sort((a, b) => a - b);
+}
+function consecCount(c) { return (c[1] - c[0] === 1) + (c[2] - c[1] === 1) + (c[3] - c[2] === 1) + (c[4] - c[3] === 1) + (c[5] - c[4] === 1); }
+function pad2(x) { return String(x).padStart(2, '0'); }
+function fmtCombo(c) { return c.map(pad2).join(' - '); }
+
+// --------------------- Lịch Can Chi & lịch quay ---------------------
+function dayInfo(ddmmyyyy) {
+    let m = ddmmyyyy && String(ddmmyyyy).match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (!m) return null;
+    let d = +m[1], mo = +m[2], y = +m[3];
+    let a = Math.floor((14 - mo) / 12), yy = y + 4800 - a, mm = mo + 12 * a - 3;
+    let jdn = d + Math.floor((153 * mm + 2) / 5) + 365 * yy + Math.floor(yy / 4) - Math.floor(yy / 100) + Math.floor(yy / 400) - 32045;
+    let can = (jdn + 9) % 10, chi = (jdn + 1) % 12;
+    return { jdn: jdn, can: can, chi: chi, canHanh: CAN_HANH[can], chiHanh: CHI_HANH[chi], duong: can % 2 === 0, dow: (jdn + 1) % 7 };
+}
+function addDays(ddmmyyyy, k) {
+    let d = new Date(getTimestamp(ddmmyyyy) + k * 86400000);
+    return `${pad2(d.getUTCDate())}.${pad2(d.getUTCMonth() + 1)}.${d.getUTCFullYear()}`;
+}
+// Kỳ quay kế tiếp theo lịch cố định, tính từ kỳ mới nhất đã nạp (không lùi về trước hôm nay)
+function nextDrawDate(latest, type) {
+    let sch = SCHEDULE[type] || [0, 1, 2, 3, 4, 5, 6];
+    let today = getTodayFormatted();
+    let start = addDays(latest, 1);
+    if (getTimestamp(start) < getTimestamp(today)) start = today;
+    for (let i = 0; i < 8; i++) {
+        let c = addDays(start, i), di = dayInfo(c);
+        if (di && sch.includes(di.dow)) return c;
+    }
+    return start;
+}
+
+// --------------- Tầng cấu trúc Delta – Gauss – Gail Howard (kế thừa V9.1) ---------------
+function structPoints(n1, n2, n3, n4, n5, n6, tier, prevFlag, idealSum, sumSigma) {
+    let h = (tier[n1] === 1) + (tier[n2] === 1) + (tier[n3] === 1) + (tier[n4] === 1) + (tier[n5] === 1) + (tier[n6] === 1);
+    let w = (tier[n1] === 2) + (tier[n2] === 2) + (tier[n3] === 2) + (tier[n4] === 2) + (tier[n5] === 2) + (tier[n6] === 2);
+    let c = 6 - h - w;
+    let hwc = 0;
+    if ((h === 2 && w === 3 && c === 1) || (h === 3 && w === 2 && c === 1) || (h === 2 && w === 2 && c === 2)) hwc = 28;
+    else if (h >= 1 && h <= 3 && w >= 1 && w <= 3 && c >= 1 && c <= 2) hwc = 18;
+    else if (h >= 5 || c >= 4) hwc = -15;
+
+    let d1 = n2 - n1, d2 = n3 - n2, d3 = n4 - n3, d4 = n5 - n4, d5 = n6 - n5;
+    let small = (d1 <= 3) + (d2 <= 3) + (d3 <= 3) + (d4 <= 3) + (d5 <= 3);
+    let large = (d1 >= 12) + (d2 >= 12) + (d3 >= 12) + (d4 >= 12) + (d5 >= 12);
+    let delta = (small >= 1 && small <= 3 && large >= 1 && large <= 2) ? 25 : ((small >= 1 || large >= 1) ? 10 : -8);
+
+    let sum = n1 + n2 + n3 + n4 + n5 + n6;
+    let gauss = Math.exp(-((sum - idealSum) * (sum - idealSum)) / (2 * sumSigma * sumSigma)) * 20;
+
+    let decMask = (1 << Math.floor(n1 / 10)) | (1 << Math.floor(n2 / 10)) | (1 << Math.floor(n3 / 10)) |
+                  (1 << Math.floor(n4 / 10)) | (1 << Math.floor(n5 / 10)) | (1 << Math.floor(n6 / 10));
+    let dec = 0; while (decMask > 0) { dec += decMask & 1; decMask >>= 1; }
+    let decade = (dec === 4 || dec === 5) ? 15 : (dec === 3 ? 6 : -10);
+
+    let odds = (n1 & 1) + (n2 & 1) + (n3 & 1) + (n4 & 1) + (n5 & 1) + (n6 & 1);
+    let oddEven = (odds === 3) ? 12 : ((odds === 2 || odds === 4) ? 9 : 0);
+
+    let rep = prevFlag[n1] + prevFlag[n2] + prevFlag[n3] + prevFlag[n4] + prevFlag[n5] + prevFlag[n6];
+    let repB = (rep <= 1) ? 10 : (rep === 2 ? 3 : -12);
+
+    return hwc + delta + gauss + decade + oddEven + repB;
+}
+// Trung bình & độ lệch chuẩn của điểm cấu trúc khi tổ hợp hoàn toàn ngẫu nhiên (mốc so sánh)
+function calibrateStructNull(N, rng, idealSum, sumSigma) {
+    let hotCut = Math.round(N * 0.30), warmCut = Math.round(N * 0.70);
+    let perm = []; for (let i = 1; i <= N; i++) perm.push(i);
+    let tier = new Uint8Array(N + 1), prevFlag = new Uint8Array(N + 1);
+    let s = 0, s2 = 0, M = 6000;
+    for (let it = 0; it < M; it++) {
+        for (let i = N - 1; i > 0; i--) { let j = Math.floor(rng() * (i + 1)); let t = perm[i]; perm[i] = perm[j]; perm[j] = t; }
+        for (let i = 0; i < N; i++) tier[perm[i]] = i < hotCut ? 1 : (i < warmCut ? 2 : 3);
+        prevFlag.fill(0); let pv = randCombo(N, rng); for (let x of pv) prevFlag[x] = 1;
+        let c = randCombo(N, rng);
+        let p = structPoints(c[0], c[1], c[2], c[3], c[4], c[5], tier, prevFlag, idealSum, sumSigma);
+        s += p; s2 += p * p;
+    }
+    let mu = s / M;
+    return { mu: mu, sd: Math.sqrt(Math.max(1e-9, s2 / M - mu * mu)) };
+}
+
+// ------------------------- XÂY MÔ HÌNH (học trọng số) -------------------------
+// dataDesc: mảng kỳ quay, MỚI NHẤT đứng đầu.  targetDate: ngày của kỳ cần dự đoán (DD.MM.YYYY)
+function buildModelV10(dataDesc, type, targetDate) {
+    const N = type, K = K_DRAW, W = N + 1, J = FEATS.length;
+    const draws = dataDesc.slice(0, 3000).reverse();           // cũ -> mới, dùng TOÀN BỘ lịch sử
+    const T = draws.length;
+    const seed = (type * 1000003 + T * 7919 + draws[T - 1].numbers.reduce((a, b) => a * 61 + b, 17)) >>> 0;
+    const rng = mulberry32(seed);
+
+    const idealSum = K * (N + 1) / 2;                                   // kỳ vọng chính xác của tổng 6 số
+    const sumSigma = Math.sqrt(K * (N + 1) * (N - K) / 12);             // độ lệch chuẩn chính xác (rút không hoàn lại)
+    const hotCut = Math.round(N * 0.30), warmCut = Math.round(N * 0.70);
+    const sNull = calibrateStructNull(N, rng, idealSum, sumSigma);
+
+    // --- trạng thái cập nhật tăng dần theo từng kỳ ---
+    let cntAll = new Float64Array(W), ew = new Float64Array(W), cnt300 = new Float64Array(W), cnt15 = new Float64Array(W);
+    let last = new Int32Array(W).fill(-1);
+    let trans = new Float64Array(W * W), transRow = new Float64Array(W);
+    let pair = new Float64Array(W * W);
+    const CP = N * (N - 1) / 2;
+    let prevFlag = new Uint8Array(W), prevNums = [];
+    let canObs = new Float64Array(5), chiObs = new Float64Array(5), amdObs = new Float64Array(2), amdExp = new Float64Array(2), relDraws = 0;
+    const oddCount = Math.ceil(N / 2), evenCount = Math.floor(N / 2);
+    const DECAY = 0.96, TAU = 30;
+    const cycle = N / K, resDen = 2 * Math.pow(cycle * 0.75, 2), stay = 1 - K / N;
+
+    // --- bộ tích lũy của hồi quy ridge ---
+    const infoScale = K * (N - K) / (N - 1);        // phương sai của tổng 6 giá trị rút không hoàn lại từ N
+    const LAMBDA = infoScale * PRIOR_DRAWS;
+    const prior = FEATS.map(f => f.prior);
+    let g = new Float64Array(J), H = [];
+    for (let j = 0; j < J; j++) H.push(new Float64Array(J));
+    let w = Float64Array.from(prior);
+    let gP = 0, hP = 0, gS = 0, hS = 0;
+    let evN = 0, evHits = 0;
+
+    let F = []; for (let j = 0; j < J; j++) F.push(new Float64Array(W));
+    let tier = new Uint8Array(W), heat = new Float64Array(W), score = new Float64Array(W);
+    let ord = [], ord2 = []; for (let n = 1; n <= N; n++) { ord.push(n); ord2.push(n); }
+    let pairMean = 0, pairVar = 0, pairC0 = 0;
+
+    function featuresAt(t, di) {
+        for (let n = 1; n <= N; n++) {
+            let gap = last[n] < 0 ? t : (t - 1 - last[n]);
+            F[0][n] = cntAll[n];
+            F[1][n] = ew[n];
+            F[2][n] = 1 - Math.pow(stay, gap);
+            let avgSkip = t / (cntAll[n] + 1);
+            F[3][n] = Math.exp(-((gap - avgSkip) * (gap - avgSkip)) / resDen);
+            F[4][n] = prevFlag[n];
+            F[5][n] = (!prevFlag[n] && ((n > 1 && prevFlag[n - 1]) || (n < N && prevFlag[n + 1]))) ? 1 : 0;
+            let mk = 0;
+            for (let i = 0; i < prevNums.length; i++) { let m = prevNums[i]; mk += (trans[m * W + n] + 1) / (transRow[m] + N); }
+            F[6][n] = mk;
+            if (di) {
+                let e = NUM_HANH[n % 10], expRel = relDraws * K / 5 + TAU;
+                F[7][n] = Math.log((canObs[REL_OF_DIFF[(e - di.canHanh + 5) % 5]] + TAU) / expRel);
+                F[8][n] = Math.log((chiObs[REL_OF_DIFF[(e - di.chiHanh + 5) % 5]] + TAU) / expRel);
+                let c = (((n & 1) === 1) === di.duong) ? 0 : 1;
+                F[9][n] = Math.log((amdObs[c] + TAU) / (amdExp[c] + TAU));
+            } else { F[7][n] = 0; F[8][n] = 0; F[9][n] = 0; }
+        }
+        for (let j = 0; j < J; j++) zScoreInPlace(F[j], N);
+    }
+    function tiersAt(t) {
+        for (let n = 1; n <= N; n++) {
+            let gap = last[n] < 0 ? t : (t - 1 - last[n]);
+            heat[n] = cnt300[n] * 2 + cnt15[n] * 5 - gap * 0.3;
+        }
+        ord2.sort((a, b) => (heat[b] - heat[a]) || (a - b));
+        for (let i = 0; i < N; i++) tier[ord2[i]] = i < hotCut ? 1 : (i < warmCut ? 2 : 3);
+    }
+    // Phần dư đồng xuất hiện của cặp (đã trừ phần do tần suất riêng của từng số)
+    function pairStatsAt(t) {
+        pairC0 = (K - 1) * N / (Math.max(1, t) * K * (N - 1));
+        let sR = 0, sR2 = 0;
+        for (let a = 1; a < N; a++) {
+            let ca = cntAll[a] * pairC0, row = a * W;
+            for (let b = a + 1; b <= N; b++) { let r = pair[row + b] - ca * cntAll[b]; sR += r; sR2 += r * r; }
+        }
+        pairMean = sR / CP; pairVar = sR2 / CP - pairMean * pairMean;
+    }
+
+    const WARM = 10, EVAL_START = 30;
+    for (let t = 0; t < T; t++) {
+        const nums = draws[t].numbers;
+        const di = dayInfo(draws[t].date);
+
+        if (t >= WARM) {
+            featuresAt(t, di);
+
+            // (1) Dự báo "mù" kỳ t bằng trọng số chỉ học từ các kỳ < t, rồi mới chấm điểm
+            if (t >= EVAL_START) {
+                for (let n = 1; n <= N; n++) { let s = 0; for (let j = 0; j < J; j++) s += w[j] * F[j][n]; score[n] = s; }
+                ord.sort((a, b) => (score[b] - score[a]) || (a - b));
+                let hit = 0;
+                for (let i = 0; i < TOP_M; i++) if (nums.indexOf(ord[i]) !== -1) hit++;
+                evN++; evHits += hit;
+            }
+
+            // (2) Tích lũy bằng chứng của từng tín hiệu
+            for (let j = 0; j < J; j++) {
+                let s = 0; for (let i = 0; i < K; i++) s += F[j][nums[i]];
+                g[j] += s;
+                for (let k2 = j; k2 < J; k2++) {
+                    let c = 0; const Fj = F[j], Fk = F[k2];
+                    for (let n = 1; n <= N; n++) c += Fj[n] * Fk[n];
+                    c = infoScale * c / N;
+                    H[j][k2] += c; if (k2 !== j) H[k2][j] += c;
+                }
+            }
+            pairStatsAt(t);
+            if (pairVar > 1e-9) {
+                let s = 0;
+                for (let i = 0; i < K; i++) for (let k2 = i + 1; k2 < K; k2++) {
+                    let a = nums[i], b = nums[k2];
+                    s += pair[a * W + b] - pairC0 * cntAll[a] * cntAll[b];
+                }
+                gP += (s - 15 * pairMean) / Math.sqrt(15 * pairVar); hP++;
+            }
+            tiersAt(t);
+            gS += (structPoints(nums[0], nums[1], nums[2], nums[3], nums[4], nums[5], tier, prevFlag, idealSum, sumSigma) - sNull.mu) / sNull.sd; hS++;
+
+            // (3) Cập nhật trọng số: w = (H + λI)^-1 (g + λ·tiên nghiệm)
+            let A = [], bvec = new Float64Array(J);
+            for (let j = 0; j < J; j++) { let row = Float64Array.from(H[j]); row[j] += LAMBDA; A.push(row); bvec[j] = g[j] + LAMBDA * prior[j]; }
+            w = solveLinear(A, bvec);
+        }
+
+        // ---- nạp kỳ t vào trạng thái ----
+        for (let i = 0; i < K; i++) { let n = nums[i]; cntAll[n]++; cnt300[n]++; cnt15[n]++; }
+        if (t >= 300) { let old = draws[t - 300].numbers; for (let i = 0; i < K; i++) cnt300[old[i]]--; }
+        if (t >= 15) { let old = draws[t - 15].numbers; for (let i = 0; i < K; i++) cnt15[old[i]]--; }
+        for (let n = 1; n <= N; n++) ew[n] *= DECAY;
+        for (let i = 0; i < K; i++) ew[nums[i]] += 1;
+        for (let i = 0; i < prevNums.length; i++) {
+            let m = prevNums[i];
+            for (let k2 = 0; k2 < K; k2++) trans[m * W + nums[k2]]++;
+            transRow[m] += K;
+        }
+        for (let i = 0; i < K; i++) for (let k2 = i + 1; k2 < K; k2++) {
+            let a = nums[i], b = nums[k2];
+            pair[a * W + b]++; pair[b * W + a]++;
+        }
+        if (di) {
+            for (let i = 0; i < K; i++) {
+                let n = nums[i], e = NUM_HANH[n % 10];
+                canObs[REL_OF_DIFF[(e - di.canHanh + 5) % 5]]++;
+                chiObs[REL_OF_DIFF[(e - di.chiHanh + 5) % 5]]++;
+                amdObs[(((n & 1) === 1) === di.duong) ? 0 : 1]++;
+            }
+            relDraws++;
+            amdExp[0] += K * (di.duong ? oddCount : evenCount) / N;
+            amdExp[1] += K * (di.duong ? evenCount : oddCount) / N;
+        }
+        for (let i = 0; i < K; i++) last[nums[i]] = t;
+        prevFlag.fill(0); for (let i = 0; i < K; i++) prevFlag[nums[i]] = 1;
+        prevNums = nums;
+    }
+
+    // ----------------- Trạng thái cuối: dự đoán kỳ kế tiếp -----------------
+    const diT = dayInfo(targetDate);
+    featuresAt(T, diT);
+    let L = new Float64Array(W), p = new Float64Array(W), se = 0;
+    for (let n = 1; n <= N; n++) { let s = 0; for (let j = 0; j < J; j++) s += w[j] * F[j][n]; L[n] = s; se += Math.exp(s); }
+    for (let n = 1; n <= N; n++) p[n] = K * Math.exp(L[n]) / se;
+    let top = []; for (let n = 1; n <= N; n++) top.push(n);
+    top.sort((a, b) => (L[b] - L[a]) || (a - b));
+    const top12 = top.slice(0, TOP_M);
+
+    tiersAt(T);
+    let byL = (a, b) => (L[b] - L[a]) || (a - b);
+    let hotPool = ord2.slice(0, hotCut).sort(byL).slice(0, 12);
+    let warmPool = ord2.slice(hotCut, warmCut).sort(byL).slice(0, 12);
+    let coldPool = ord2.slice(warmCut).sort(byL).slice(0, 8);
+    const pool = hotPool.concat(warmPool, coldPool).sort((a, b) => a - b);
+
+    const wPair = gP / (hP + PRIOR_DRAWS);
+    const wStruct = (gS + PRIOR_DRAWS * PRIOR_STRUCT) / (hS + PRIOR_DRAWS);
+    pairStatsAt(T);
+    let PW = new Float64Array(W * W);
+    if (pairVar > 1e-9) {
+        let den = Math.sqrt(15 * pairVar);
+        for (let a = 1; a < N; a++) for (let b = a + 1; b <= N; b++) {
+            let v = wPair * (pair[a * W + b] - pairC0 * cntAll[a] * cntAll[b] - pairMean) / den;
+            PW[a * W + b] = v; PW[b * W + a] = v;
+        }
+    }
+
+    // ----------------- Các phép kiểm định để hiển thị -----------------
+    let expF = T * K / N, x2 = 0, ent = 0;
+    for (let n = 1; n <= N; n++) {
+        x2 += (cntAll[n] - expF) * (cntAll[n] - expF) / expF;
+        let q = cntAll[n] / (T * K); if (q > 0) ent -= q * Math.log(q);
+    }
+    x2 *= (N - 1) / (N - K);                    // hiệu chỉnh cho rút không hoàn lại
+    function relTest(obs) {
+        let e = relDraws * K / 5, x = 0;
+        if (e <= 0) return { x2: 0, p: 1, exp: 0 };
+        for (let c = 0; c < 5; c++) x += (obs[c] - e) * (obs[c] - e) / e;
+        x *= (N - 1) / (N - K);
+        return { x2: x, p: chi2P(x, 4), exp: e };
+    }
+    let evExp = TOP_M * K / N, evVar = K * (TOP_M / N) * (1 - TOP_M / N) * (N - K) / (N - 1);
+    let evZ = evN > 0 ? (evHits - evN * evExp) / Math.sqrt(evN * evVar) : 0;
+
+    let signals = FEATS.map((f, j) => ({ name: f.name, sub: f.sub, z: H[j][j] > 1e-9 ? g[j] / Math.sqrt(H[j][j]) : 0, w: w[j] }));
+    signals.push({ name: 'Cộng hưởng cặp số', sub: 'Đồng xuất hiện sau khi trừ tần suất riêng', z: hP > 0 ? gP / Math.sqrt(hP) : 0, w: wPair });
+    signals.push({ name: 'Cấu trúc Delta – Gauss – Gail Howard', sub: 'Nóng/Ấm/Lạnh, bước nhảy, tổng, thập phân, chẵn lẻ', z: hS > 0 ? gS / Math.sqrt(hS) : 0, w: wStruct });
+
+    return {
+        type: N, W: W, T: T, seed: seed, targetDate: targetDate, dayT: diT,
+        L: L, p: p, top12: top12, tier: tier, prevFlag: prevFlag, pool: pool, PW: PW,
+        wStruct: wStruct, sMu: sNull.mu, sSd: sNull.sd, idealSum: idealSum, sumSigma: sumSigma,
+        signals: signals,
+        uniform: { x2: x2, df: N - 1, p: chi2P(x2, N - 1), entropy: ent / Math.log(N), shrink: Math.max(0, 1 - (N - 1) / Math.max(1e-9, x2)) },
+        wf: { n: evN, mean: evN
