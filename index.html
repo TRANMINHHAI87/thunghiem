@@ -1794,4 +1794,478 @@ function buildModelV10(dataDesc, type, targetDate) {
         wStruct: wStruct, sMu: sNull.mu, sSd: sNull.sd, idealSum: idealSum, sumSigma: sumSigma,
         signals: signals,
         uniform: { x2: x2, df: N - 1, p: chi2P(x2, N - 1), entropy: ent / Math.log(N), shrink: Math.max(0, 1 - (N - 1) / Math.max(1e-9, x2)) },
-        wf: { n: evN, mean: evN
+        wf: { n: evN, mean: evN > 0 ? evHits / evN : 0, exp: evExp, z: evZ, p: 1 - normalCdf(evZ) },
+        rel: { can: Array.from(canObs), chi: Array.from(chiObs), canTest: relTest(canObs), chiTest: relTest(chiObs) }
+    };
+}
+
+// Điểm của 1 tổ hợp = log-tỷ số hợp lý (so với tổ hợp trung bình) theo mô hình. n1 < n2 < ... < n6
+function comboLLR(n1, n2, n3, n4, n5, n6, m) {
+    const L = m.L, PW = m.PW, W = m.W;
+    let r1 = n1 * W, r2 = n2 * W, r3 = n3 * W, r4 = n4 * W, r5 = n5 * W;
+    return L[n1] + L[n2] + L[n3] + L[n4] + L[n5] + L[n6]
+        + PW[r1 + n2] + PW[r1 + n3] + PW[r1 + n4] + PW[r1 + n5] + PW[r1 + n6]
+        + PW[r2 + n3] + PW[r2 + n4] + PW[r2 + n5] + PW[r2 + n6]
+        + PW[r3 + n4] + PW[r3 + n5] + PW[r3 + n6]
+        + PW[r4 + n5] + PW[r4 + n6] + PW[r5 + n6]
+        + m.wStruct * (structPoints(n1, n2, n3, n4, n5, n6, m.tier, m.prevFlag, m.idealSum, m.sumSigma) - m.sMu) / m.sSd;
+}
+function toPts(s) { return 100 + 100 * s; }
+
+function overlapCount(a, b) { let s = 0; for (let i = 0; i < 6; i++) if (b.indexOf(a[i]) !== -1) s++; return s; }
+// Chọn k tổ hợp điểm cao nhất nhưng không trùng nhau quá maxOverlap số (tự nới nếu thiếu)
+function pickDiverse(sortedDesc, k, maxOverlap) {
+    let out = [];
+    for (let lim = maxOverlap; lim <= 5 && out.length < k; lim++) {
+        for (let item of sortedDesc) {
+            if (out.indexOf(item) !== -1) continue;
+            let ok = true;
+            for (let o of out) if (overlapCount(item.combo, o.combo) > lim) { ok = false; break; }
+            if (ok) { out.push(item); if (out.length === k) break; }
+        }
+    }
+    return out.sort((a, b) => b.s - a.s);
+}
+
+// Luyện kim mô phỏng: năng lượng E = -điểm, chấp nhận bước xấu với xác suất Boltzmann exp(ΔS / Nhiệt độ)
+function annealSearch(m, universe, rng, restarts, steps, tempScale, bag) {
+    const U = universe.length, res = [];
+    if (U < 8) return res;
+    const T0 = 1.2 * tempScale, T1 = 0.02 * tempScale, ratio = Math.pow(T1 / T0, 1 / Math.max(1, steps - 1));
+    let inCur = new Uint8Array(m.W);
+    for (let r = 0; r < restarts; r++) {
+        let cur = null, tries = 0;
+        while (!cur && tries++ < 300) {
+            let c = [];
+            while (c.length < 6) { let x = universe[Math.floor(rng() * U)]; if (c.indexOf(x) === -1) c.push(x); }
+            c.sort((a, b) => a - b);
+            if (consecCount(c) <= 3) cur = c;
+        }
+        if (!cur) continue;
+        inCur.fill(0); for (let i = 0; i < 6; i++) inCur[cur[i]] = 1;
+        let curS = comboLLR(cur[0], cur[1], cur[2], cur[3], cur[4], cur[5], m);
+        let best = cur.slice(), bestS = curS, Temp = T0;
+        for (let s = 0; s < steps; s++, Temp *= ratio) {
+            let i = Math.floor(rng() * 6), cand = universe[Math.floor(rng() * U)];
+            if (inCur[cand]) continue;
+            let nxt = cur.slice(); nxt[i] = cand; nxt.sort((a, b) => a - b);
+            if (consecCount(nxt) > 3) continue;
+            let ns = comboLLR(nxt[0], nxt[1], nxt[2], nxt[3], nxt[4], nxt[5], m);
+            if (ns >= curS || rng() < Math.exp((ns - curS) / Temp)) {
+                inCur[cur[i]] = 0; inCur[cand] = 1; cur = nxt; curS = ns;
+                if (ns > bestS) { bestS = ns; best = nxt.slice(); }
+                if (bag && s * 2 > steps && bag.size < 30000) bag.set(nxt.join('-'), { combo: nxt, s: ns });   // pha nguội
+            }
+        }
+        res.push({ combo: best, s: bestS });
+    }
+    return res;
+}
+
+// ------------------------- ĐỘNG CƠ DỰ ĐOÁN -------------------------
+// probe (tùy chọn): bộ 6 số thực tế vừa về, để xếp hạng nó trong không gian tổ hợp của pool
+function runEngine(dataDesc, type, targetDate, probe) {
+    const tStart = performance.now();
+    const m = buildModelV10(dataDesc, type, targetDate);
+    const rng = mulberry32((m.seed ^ 0x9E3779B9) >>> 0);
+    const pool = m.pool, P = pool.length;
+
+    let buf = [], thr = -Infinity, bottomLow = [], midSamples = [];
+    let probeS = probe ? comboLLR(probe[0], probe[1], probe[2], probe[3], probe[4], probe[5], m) : null;
+    let higher = 0, totalValid = 0;
+
+    for (let i1 = 0; i1 < P - 5; i1++) {
+        let n1 = pool[i1];
+        for (let i2 = i1 + 1; i2 < P - 4; i2++) {
+            let n2 = pool[i2];
+            for (let i3 = i2 + 1; i3 < P - 3; i3++) {
+                let n3 = pool[i3];
+                for (let i4 = i3 + 1; i4 < P - 2; i4++) {
+                    let n4 = pool[i4];
+                    for (let i5 = i4 + 1; i5 < P - 1; i5++) {
+                        let n5 = pool[i5];
+                        for (let i6 = i5 + 1; i6 < P; i6++) {
+                            let n6 = pool[i6];
+                            let cs = (n2 - n1 === 1) + (n3 - n2 === 1) + (n4 - n3 === 1) + (n5 - n4 === 1) + (n6 - n5 === 1);
+                            if (cs > 3) continue;
+                            totalValid++;
+                            let s = comboLLR(n1, n2, n3, n4, n5, n6, m);
+                            if (probe && s > probeS) higher++;
+
+                            if (s > thr) {
+                                buf.push({ combo: [n1, n2, n3, n4, n5, n6], s: s });
+                                if (buf.length >= 8000) { buf.sort((a, b) => b.s - a.s); buf.length = 4000; thr = buf[3999].s; }
+                            }
+                            if (bottomLow.length < 5) {
+                                bottomLow.push({ combo: [n1, n2, n3, n4, n5, n6], s: s });
+                                bottomLow.sort((a, b) => a.s - b.s);
+                            } else if (s < bottomLow[4].s) {
+                                bottomLow[4] = { combo: [n1, n2, n3, n4, n5, n6], s: s };
+                                bottomLow.sort((a, b) => a.s - b.s);
+                            }
+                            if (rng() < 0.004) midSamples.push({ combo: [n1, n2, n3, n4, n5, n6], s: s });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    buf.sort((a, b) => b.s - a.s);
+    let topHigh = pickDiverse(buf, 5, 4);
+
+    let topMid = topHigh, scoreSd = 0.05;
+    if (midSamples.length > 10) {
+        midSamples.sort((a, b) => b.s - a.s);
+        let midIndex = Math.floor(midSamples.length * 0.50);
+        topMid = midSamples.slice(Math.max(0, midIndex - 2), midIndex + 3);
+        let mu = 0; midSamples.forEach(x => mu += x.s); mu /= midSamples.length;
+        let v = 0; midSamples.forEach(x => v += (x.s - mu) * (x.s - mu));
+        scoreSd = Math.max(1e-4, Math.sqrt(v / midSamples.length));
+    }
+
+    // Luyện kim mô phỏng trên toàn bộ N số (không bị giới hạn trong pool 32)
+    let universe = []; for (let n = 1; n <= type; n++) universe.push(n);
+    let bag = new Map();
+    annealSearch(m, universe, rng, 48, 1400, scoreSd, bag).forEach(x => bag.set(x.combo.join('-'), x));
+    let anneal = pickDiverse(Array.from(bag.values()).sort((a, b) => b.s - a.s), 10, 3);
+
+    // Bộ vé phủ rộng: 5 vé không trùng nhau số nào -> phủ 30 số
+    let cover = [], used = new Uint8Array(type + 1);
+    for (let k = 0; k < 5; k++) {
+        let uni = universe.filter(n => !used[n]);
+        let r = annealSearch(m, uni, rng, 10, 1000, scoreSd).sort((a, b) => b.s - a.s);
+        if (r.length === 0) break;
+        cover.push(r[0]); r[0].combo.forEach(n => used[n] = 1);
+    }
+
+    return {
+        m: m, topHigh: topHigh, topMid: topMid, bottomLow: bottomLow, anneal: anneal, cover: cover,
+        probeS: probeS, rank: Math.min(higher + 1, totalValid), totalValid: totalValid,
+        execTime: ((performance.now() - tStart) / 1000).toFixed(2)
+    };
+}
+
+function dayLabel(dateStr, di) {
+    if (!di) return dateStr;
+    return `${THU[di.dow]} ${dateStr} · ngày <b>${CAN[di.can]} ${CHI[di.chi]}</b> · Can <b>${HANH[di.canHanh]}</b> / Chi <b>${HANH[di.chiHanh]}</b> · ${di.duong ? 'Dương' : 'Âm'}`;
+}
+function getGameData(type) {
+    let allData = JSON.parse(localStorage.getItem(KEY) || '[]');
+    let d = allData.filter(x => x.type === '6/' + type && getTimestamp(x.date) > 0);
+    d.sort((a, b) => getTimestamp(b.date) - getTimestamp(a.date));
+    return d;
+}
+function maxMatch(list, nums) {
+    let best = 0;
+    (list || []).forEach(x => { let k = overlapCount(x.combo, nums); if (k > best) best = k; });
+    return best;
+}
+
+function saveData(){
+    const type=parseInt(document.getElementById('gameType').value);
+    const dateRaw = document.getElementById('dateBox').value.trim();
+    const finalDate = normalizeToDDMMYYYY(dateRaw);
+    if(finalDate === '') { alert('Định dạng ngày không hợp lệ!'); return; }
+
+    let nums=[];
+    for(let i=1;i<=6;i++){
+        const v=parseInt(document.getElementById('s'+i).value);
+        if(isNaN(v) || v<=0 || v>type) { alert('Dãy số không hợp lệ!'); return; }
+        nums.push(v);
+    }
+    if(new Set(nums).size < 6) { alert('Lỗi: Trùng số!'); return; }
+    nums.sort((a,b)=>a-b);
+
+    let allData=JSON.parse(localStorage.getItem(KEY)||'[]');
+    if(allData.some(d => d.date === finalDate && d.type === '6/'+type)) { alert(`Kỳ quay ngày ${finalDate} đã tồn tại!`); return; }
+
+    // Hậu kiểm: dựng lại đúng mô hình TRƯỚC khi biết kết quả kỳ này rồi mới đối chiếu
+    let oldValidData = getGameData(type);
+    let reportBox = document.getElementById('backtestReport');
+
+    if(oldValidData.length >= 10) {
+        reportBox.style.display = "block";
+        if(consecCount(nums) > 3) {
+            reportBox.innerHTML = `
+                <div class="bt-title">🔎 TRUY VẾT KẾT QUẢ: ${finalDate}</div>
+                <div class="bt-detail" style="color: #ff7b72;">
+                    Bộ số: <b>${fmtCombo(nums)}</b><br>
+                    Kết quả: <b>Nằm ngoài vùng quét [Quá nhiều số liên tiếp (>4 số)]</b>
+                </div>`;
+        } else {
+            let res = runEngine(oldValidData, type, finalDate, nums), m = res.m;
+            let percentile = res.totalValid > 0 ? ((res.rank / res.totalValid) * 100).toFixed(1) : "0.0";
+            let hCount = nums.filter(x => m.tier[x] === 1).length;
+            let wCount = nums.filter(x => m.tier[x] === 2).length;
+            let cCount = nums.filter(x => m.tier[x] === 3).length;
+            let hit12 = nums.filter(x => m.top12.indexOf(x) !== -1).length;
+            let inPool = nums.filter(x => m.pool.indexOf(x) !== -1).length;
+
+            reportBox.innerHTML = `
+                <div class="bt-title">🔎 HẬU KIỂM V10: ${finalDate}</div>
+                <div class="bt-detail">
+                    Bộ số vừa về: <b>${fmtCombo(nums)}</b><br>
+                    ${dayLabel(finalDate, m.dayT)}<br>
+                    Cấu trúc Nhiệt độ: <b>${hCount} Nóng - ${wCount} Ấm - ${cCount} Lạnh</b> | Tổng: <b>${nums.reduce((a,b)=>a+b,0)}</b><br>
+                    Điểm V10: <b>${toPts(res.probeS).toFixed(1)} pts</b>
+                </div>
+                <div class="bt-rank">Hạng: ${res.rank.toLocaleString()} / ${res.totalValid.toLocaleString()}</div>
+                <div style="color:#3fb950; font-weight:bold; font-size:13px; margin-top:5px;">Vị trí phân bổ: Dải bách phân vị ${percentile}/100 (so với các tổ hợp của pool 32 số)</div>
+                <div class="bt-detail" style="margin-top:10px; border-top:1px solid #30363d; padding-top:8px;">
+                    Top ${TOP_M} số mạnh trúng: <b>${hit12}/6</b> (ngẫu nhiên kỳ vọng ${(TOP_M*6/type).toFixed(2)}) · Pool 32 chứa: <b>${inPool}/6</b><br>
+                    Vé khớp nhiều nhất trước khi quay — Đỉnh: <b>${maxMatch(res.topHigh, nums)}</b> · Trung vị: <b>${maxMatch(res.topMid, nums)}</b> · Hạ vị: <b>${maxMatch(res.bottomLow, nums)}</b> · Luyện kim: <b>${maxMatch(res.anneal, nums)}</b> · Bộ phủ: <b>${maxMatch(res.cover, nums)}</b> số
+                </div>`;
+        }
+    }
+
+    allData.push({ type:'6/'+type, date:finalDate, numbers:nums });
+    localStorage.setItem(KEY,JSON.stringify(allData));
+    document.getElementById('pasteBox').value=''; document.getElementById('dateBox').value='';
+    for(let i=1;i<=6;i++) document.getElementById('s'+i).value='';
+    updateAllByGameType();
+}
+
+function removeItemExact(type, date){
+    if(!confirm(`Xóa kỳ quay ngày ${date}?`)) return;
+    let data=JSON.parse(localStorage.getItem(KEY)||'[]');
+    data = data.filter(x => !(x.type === type && x.date === date));
+    localStorage.setItem(KEY,JSON.stringify(data));
+    updateAllByGameType();
+    document.getElementById('backtestReport').style.display = "none";
+}
+
+function updateAllByGameType() {
+    const type=document.getElementById('gameType').value;
+    document.getElementById('gameScopeTitle').innerHTML = `Vé: ${type === '45' ? 'Mega 6/45' : 'Power 6/55'}`;
+
+    let filteredData = getGameData(type);
+    document.getElementById('totalDraw').innerHTML = `Tổng nạp: ${filteredData.length} kỳ`;
+
+    let recent300 = filteredData.slice(0, 300);
+    renderHeatMap(recent300, parseInt(type)); renderHot(recent300, parseInt(type)); renderTrend(recent300);
+    renderHistory(filteredData);
+    predictDataBtn();
+}
+
+function predictDataBtn() {
+    const type = parseInt(document.getElementById('gameType').value);
+    let data = getGameData(type);
+    let box = document.getElementById('resultBox'), targetBox = document.getElementById('targetBox');
+
+    if(data.length < 10){
+        box.innerHTML=`<span style="color:#ff7b72">Cần ít nhất 10 kỳ để kích hoạt.</span>`; return;
+    }
+
+    let auto = nextDrawDate(data[0].date, type);
+    targetBox.placeholder = `Ngày quay cần dự đoán (để trống = kỳ kế tiếp: ${auto})`;
+    let target = auto, raw = targetBox.value.trim();
+    if (raw) {
+        let t = normalizeToDDMMYYYY(raw);
+        if (!t || getTimestamp(t) <= getTimestamp(data[0].date)) targetBox.value = '';   // ngày sai hoặc đã qua -> tự tính lại
+        else target = t;
+    }
+
+    let res = runEngine(data, type, target, null);
+    renderPrediction(res, data.length);
+    renderHeatMapModel(res.m);
+}
+
+function fmtP(p) { return p < 0.001 ? '< 0.001' : p.toFixed(3); }
+function fmtZ(z) { return (z >= 0 ? '+' : '') + z.toFixed(2); }
+function sigPill(z) {
+    let a = Math.abs(z);
+    if (a >= 3) return '<span class="pill g">Có tín hiệu</span>';
+    if (a >= 2) return '<span class="pill y">Nghi vấn</span>';
+    return '<span class="pill n">Nhiễu</span>';
+}
+function comboRows(list, firstIcon, mainColor, subColor, badgeBg) {
+    let h = '';
+    list.forEach((item, idx) => {
+        let st = idx === 0 ? `color:${mainColor}; font-size:18px;` : `color:${subColor};`;
+        h += `<div class="row-item">
+            <span style="${st}">${idx === 0 ? firstIcon : (idx + 1) + '.'} <b>${fmtCombo(item.combo)}</b></span>
+            <span class="score-badge" style="background:${badgeBg}; color:${mainColor};">Điểm: ${toPts(item.s).toFixed(1)}</span>
+        </div>`;
+    });
+    return h;
+}
+
+function renderPrediction(res, totalDraws) {
+    const m = res.m, type = m.type, u = m.uniform, wf = m.wf;
+
+    let uniVerdict = u.p < 0.01 ? 'Tần suất lệch khỏi phân phối đều ở mức có ý nghĩa thống kê.'
+                   : (u.p < 0.05 ? 'Có dấu hiệu lệch nhẹ khỏi phân phối đều.' : 'Tần suất các số chưa lệch khỏi phân phối đều ở mức có ý nghĩa thống kê.');
+    let wfVerdict = wf.n < 30 ? 'Chưa đủ kỳ để kết luận (cần từ 60 kỳ nạp trở lên).'
+                  : (wf.z >= 2 ? 'Vượt mức ngẫu nhiên, có ý nghĩa thống kê.'
+                  : (wf.z > 0 ? 'Cao hơn mức ngẫu nhiên nhưng chưa đủ ý nghĩa thống kê (cần z ≥ 2).' : 'Chưa vượt mức ngẫu nhiên.'));
+
+    let sigRows = m.signals.map(s => `<tr><td><b>${s.name}</b><br><span style="color:#8b949e;">${s.sub}</span></td>
+        <td class="num">${fmtZ(s.z)}</td><td class="num">${(s.w >= 0 ? '+' : '') + s.w.toFixed(3)}</td><td>${sigPill(s.z)}</td></tr>`).join('');
+
+    let relHtml = '';
+    if (m.dayT) {
+        let head = '', rowE = '', rowC = '', rowZ = '';
+        for (let r = 0; r < 5; r++) {
+            let eCan = (m.dayT.canHanh + REL_TO_DIFF[r]) % 5, eChi = (m.dayT.chiHanh + REL_TO_DIFF[r]) % 5;
+            head += `<th class="num">${REL_NAME[r]}</th>`;
+            rowE += `<td class="num">${HANH[eCan]}<br><span style="color:#8b949e;">đuôi ${HANH_DUOI[eCan]}</span></td>`;
+            rowC += `<td class="num">${m.rel.can[r]} / ${m.rel.canTest.exp.toFixed(0)}</td>`;
+            rowZ += `<td class="num">${m.rel.chi[r]} / ${m.rel.chiTest.exp.toFixed(0)}<br><span style="color:#8b949e;">${HANH[eChi]}</span></td>`;
+        }
+        relHtml = `
+        <div class="lab-h">☯ Ngũ hành ngày quay — số lần về thực tế / kỳ vọng</div>
+        <table><tr><th>Quan hệ với ngày</th>${head}</tr>
+        <tr><td>Theo Can (${HANH[m.dayT.canHanh]}) kỳ này</td>${rowE}</tr>
+        <tr><td>Lịch sử theo Can · p = ${fmtP(m.rel.canTest.p)}</td>${rowC}</tr>
+        <tr><td>Lịch sử theo Chi · p = ${fmtP(m.rel.chiTest.p)}</td>${rowZ}</tr></table>`;
+    }
+
+    let balls = m.top12.map(n => `<div class="ball" title="Xác suất ước lượng ${(m.p[n] * 100).toFixed(2)}% (mức đều ${(600 / type).toFixed(2)}%)">${pad2(n)}</div>`).join('');
+
+    let html = `
+    <div class="metric-box" style="margin-bottom: 15px;">
+        <div class="metric-item">⚡ Tốc độ: <strong>${res.execTime} giây</strong> · ${totalDraws} kỳ</div>
+        <div class="metric-item">🧬 Lõi: <strong>V10 · ${m.signals.length} tín hiệu tự học</strong></div>
+    </div>
+
+    <div class="lab">
+        <div class="lab-h" style="margin-top:0;">📅 Kỳ dự đoán</div>
+        <div>${dayLabel(m.targetDate, m.dayT)}</div>
+
+        <div class="lab-h">🎯 Top ${TOP_M} số mạnh nhất theo mô hình</div>
+        <div class="top12">${balls}</div>
+
+        <div class="lab-h">🧪 Hậu kiểm tiến ${wf.n} kỳ (dự báo mù, không nhìn trước tương lai)</div>
+        <div>Top ${TOP_M} trúng trung bình <b>${wf.mean.toFixed(3)}</b> số/kỳ — mức ngẫu nhiên <b>${wf.exp.toFixed(3)}</b> · z = <b>${fmtZ(wf.z)}</b> · p = ${fmtP(wf.p)}<br>→ ${wfVerdict}</div>
+
+        <details>
+        <summary>🔬 Phòng thí nghiệm: kiểm định máy quay · bảng tín hiệu · Ngũ hành</summary>
+        <div class="lab-h">⚙️ Kiểm định máy quay (χ² phân phối đều, ${m.T} kỳ)</div>
+        <div>χ² = <b>${u.x2.toFixed(1)}</b> / ${u.df} bậc tự do · p = <b>${fmtP(u.p)}</b> · Entropy Shannon ${(u.entropy * 100).toFixed(2)}% · Hệ số lệch Bayes B = ${u.shrink.toFixed(2)}<br>→ ${uniVerdict}</div>
+
+        <div class="lab-h">📡 Bảng tín hiệu (z = độ mạnh bằng chứng; thử ${m.signals.length} tín hiệu cùng lúc nên |z| ≥ 3 mới đáng tin)</div>
+        <table><tr><th>Tín hiệu</th><th class="num">z</th><th class="num">Trọng số</th><th>Đánh giá</th></tr>${sigRows}</table>
+        ${relHtml}
+        </details>
+    </div>
+
+    <div class="block-top">
+        <div class="title-top">🏆 1. VÙNG CỘNG HƯỞNG ĐỈNH (Pool 32 số, mỗi vé khác nhau ≥ 2 số)</div>
+        ${comboRows(res.topHigh, '👑', '#3fb950', '#c9d1d9', 'rgba(63,185,80,0.15)')}
+    </div>
+
+    <div class="block-mid">
+        <div class="title-mid">⚖️ 2. VÙNG TRUNG VỊ (Điểm Cân Bằng - Dải 50/100)</div>
+        ${comboRows(res.topMid, '🎯', '#d29922', '#a27b5c', 'rgba(210,153,34,0.1)')}
+    </div>
+
+    <div class="block-near-bottom">
+        <div class="title-near-bottom">💀 3. VÙNG HẠ VỊ (Đáy Tuyệt Đối - Ngược Mô Hình)</div>
+        ${comboRows(res.bottomLow, '💀', '#a371f7', '#7a5aab', 'rgba(163,113,247,0.1)')}
+    </div>
+
+    <div class="block-global">
+        <div class="title-global">🌐 4. LUYỆN KIM MÔ PHỎNG TOÀN BẢN ĐỒ (Boltzmann, quét đủ ${type} số)</div>
+        ${comboRows(res.anneal, '🔥', '#58a6ff', '#58a6ff', 'rgba(88,166,255,0.1)')}
+    </div>
+
+    <div class="block-cover">
+        <div class="title-cover">🛡️ 5. BỘ VÉ PHỦ RỘNG (${res.cover.length} vé không trùng số nào — phủ ${res.cover.length * 6}/${type} số)</div>
+        ${comboRows(res.cover, '🛡️', '#39d353', '#7ee787', 'rgba(57,211,83,0.1)')}
+    </div>`;
+
+    document.getElementById('resultBox').innerHTML = html;
+}
+
+// Bản đồ nhiệt khi chưa đủ dữ liệu chạy mô hình: tô theo tần suất
+function renderHeatMap(filteredData, maxNumber){
+    let freq={}; for(let i=1;i<=maxNumber;i++) freq[i]=0;
+    filteredData.forEach(r=>r.numbers.forEach(n=>{ if(freq[n]!==undefined) freq[n]++; }));
+    let mx = 0; for(let i=1;i<=maxNumber;i++) mx = Math.max(mx, freq[i]);
+    document.getElementById('heatMap').innerHTML='';
+    for(let i=1;i<=maxNumber;i++){
+        let d=document.createElement('div'); d.className='hot-cell';
+        if(mx>0) { d.style.background=`rgba(248,81,73,${(0.08+0.6*freq[i]/mx).toFixed(2)})`; d.style.color='#fff'; }
+        d.title=`Số ${i}: ${freq[i]} lần`;
+        d.innerHTML=pad2(i); document.getElementById('heatMap').appendChild(d);
+    }
+}
+
+// Bản đồ nhiệt theo mô hình: đỏ = xác suất ước lượng cao hơn mức đều, xanh = thấp hơn, viền vàng = Top 12
+function renderHeatMapModel(m){
+    let N = m.type, mean = 0, mx = 1e-9;
+    for(let n=1;n<=N;n++) mean += m.L[n]; mean /= N;
+    for(let n=1;n<=N;n++) mx = Math.max(mx, Math.abs(m.L[n]-mean));
+    let el = document.getElementById('heatMap'); el.innerHTML='';
+    for(let n=1;n<=N;n++){
+        let t = (m.L[n]-mean)/mx, a = (0.10+0.65*Math.abs(t)).toFixed(2);
+        let d=document.createElement('div'); d.className='hot-cell';
+        d.style.background = t>=0 ? `rgba(248,81,73,${a})` : `rgba(56,139,253,${a})`;
+        d.style.color='#fff';
+        if(m.top12.indexOf(n)!==-1) d.style.boxShadow='inset 0 0 0 2px #e3b341';
+        d.title=`Số ${n}: ${(m.p[n]*100).toFixed(2)}% (mức đều ${(600/N).toFixed(2)}%)`;
+        d.innerHTML=pad2(n); el.appendChild(d);
+    }
+}
+
+function renderHot(filteredData, maxNumber){
+    let freq={}; for(let i=1;i<=maxNumber;i++) freq[i]=0;
+    filteredData.forEach(r=>r.numbers.forEach(n=>{ if(freq[n]!==undefined) freq[n]++; }));
+    let arr=[]; for(let i=1;i<=maxNumber;i++) arr.push({n:i,c:freq[i]}); arr.sort((a,b)=>b.c-a.c);
+    let mx = arr.length ? Math.max(1, arr[0].c) : 1;
+    document.getElementById('hotList').innerHTML=''; document.getElementById('freqChart').innerHTML='';
+    arr.slice(0,10).forEach(x=>{ if(x.c > 0) {
+        document.getElementById('hotList').innerHTML+=`<div style="color:#58a6ff;">Số ${x.n} (${x.c} lần)</div>`;
+        document.getElementById('freqChart').innerHTML+=`<div style="margin-bottom:8px; color:#8b949e;"><div>Số ${x.n}</div><div class="bar" style="width:${Math.round(100*x.c/mx)}%"></div></div>`;
+    }});
+}
+
+function renderTrend(filteredData){
+    document.getElementById('trendBox').innerHTML='';
+    filteredData.slice(0,10).forEach(r=>{ const total=r.numbers.reduce((a,b)=>a+b,0);
+        document.getElementById('trendBox').innerHTML+=`<div style="margin-bottom:10px; color:#8b949e;"><div>${r.date} - Tổng ${total}</div><div class="bar" style="width:${Math.min(total,250)}px;"></div></div>`;
+    });
+}
+
+function renderHistory(filteredData){
+    document.getElementById('history').innerHTML=''; if(filteredData.length === 0) return;
+    filteredData.forEach((item)=>{ let div=document.createElement('div'); div.className='history-item';
+        let dateDisplay = item.date; if (getTimestamp(item.date) === 0) dateDisplay = `<span style="color:red; font-weight:bold">[LỖI] ${item.date}</span>`;
+        div.innerHTML=`<span style="color:#c9d1d9;">[${dateDisplay}] <b style="color:${item.type==='6/45'?'#1f6feb':'#58a6ff'}">(${item.type})</b>: <b>${item.numbers.map(x=>String(x).padStart(2,'0')).join(' - ')}</b></span><button class="delete-btn" onclick="removeItemExact('${item.type}', '${item.date}')">Xóa</button>`;
+        document.getElementById('history').appendChild(div);
+    });
+}
+
+function importData(event) {
+    let file = event.target.files[0]; if (!file) return;
+    let reader = new FileReader(); reader.onload = function(e) { try {
+        let jsonData = JSON.parse(e.target.result); 
+        if(Array.isArray(jsonData)) { 
+            let cleanedData = [];
+            jsonData.forEach(x => {
+                if(x && x.numbers && Array.isArray(x.numbers) && x.numbers.length === 6) {
+                    let normDate = normalizeToDDMMYYYY(x.date);
+                    if(!normDate) normDate = getTodayFormatted();
+                    let gameType = x.type || "6/45";
+                    if(!gameType.startsWith("6/")) gameType = "6/" + gameType;
+                    
+                    cleanedData.push({ type: gameType, date: normDate, numbers: x.numbers.map(Number).sort((a,b)=>a-b) });
+                }
+            });
+            localStorage.setItem(KEY, JSON.stringify(cleanedData)); 
+            alert("Nạp dữ liệu thành công! Khôi phục " + cleanedData.length + " kỳ."); updateAllByGameType(); 
+        } else { alert("File không hợp lệ!"); }
+    } catch (error) { alert("Lỗi đọc file TXT!"); }}; reader.readAsText(file);
+}
+
+function exportData() {
+    let data = localStorage.getItem(KEY); if(!data || data === '[]') { alert("Không có dữ liệu!"); return; }
+    let blob = new Blob([data], {type: "text/plain"}); let a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `vietlott_V10_backup_${new Date().toISOString().slice(0,10)}.txt`; a.click();
+}
+
+updateAllByGameType();
+</script>
+
+</body>
+</html>
