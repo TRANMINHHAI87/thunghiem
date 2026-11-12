@@ -103,6 +103,8 @@ button:active { transform: scale(0.96); }
     font-weight: bold;
 }
 .staging-row .st-date { color: #3fb950; border-color: #238636; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .staging-row .st-num { color: #58a6ff; }
 .staging-row.check { outline: 2px solid #d29922; outline-offset: 2px; border-radius: 6px; background: rgba(210,153,34,0.10); }
 .staging-del { background: #da3633; color: #fff; padding: 6px 0; font-size: 12px; border-radius: 6px; }
@@ -166,6 +168,11 @@ button:active { transform: scale(0.96); }
 .lab{padding:10px;} .lab th, .lab td{padding:4px 3px;}
 .staging-row { grid-template-columns: 92px repeat(6, 1fr) 30px; gap: 3px; }
 }
+@media(max-width:700px){
+.staging-row { grid-template-columns: repeat(6, 1fr) 34px; gap: 4px; padding: 5px; margin-bottom: 10px; border: 1px solid #30363d; border-radius: 8px; }
+.staging-row .st-date { grid-column: 1 / -1; font-size: 15px; padding: 7px 4px; }
+.staging-row .st-num { font-size: 15px; padding: 8px 2px; }
+}
 </style>
 </head>
 
@@ -221,8 +228,8 @@ button:active { transform: scale(0.96); }
     <!-- BẢNG KIỂM DUYỆT KẾT QUẢ ĐỌC TỪ ẢNH -->
     <div class="ocr-preview-wrap" id="ocrPreviewWrap">
         <img id="ocrPreviewImg" class="ocr-preview-img" alt="Preview">
-        <div style="font-size:13px; font-weight:bold; color:#3fb950; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-            <span id="ocrDetectedCount">Đã bóc tách: 0 kỳ quay</span>
+        <div style="font-size:13px; font-weight:bold; color:#3fb950; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <span id="ocrDetectedCount" style="flex:1; min-width:0;">Đã bóc tách: 0 kỳ quay</span>
             <button onclick="addEmptyStagingRow()" style="flex:unset; padding:4px 8px; font-size:11px; background:#21262d; color:#58a6ff; border:1px solid #58a6ff;">+ Thêm dòng</button>
         </div>
         <div id="stagingList"></div>
@@ -274,6 +281,7 @@ button:active { transform: scale(0.96); }
 // Giữ nguyên KEY cũ để bảo toàn 100% dữ liệu lịch sử
 const KEY = 'vietlott_ai_v81_unbound'; 
 let lastUploadedBlob = null;
+let ocrNotice = '';        // thông báo hiện kèm bảng kiểm duyệt (vd: đã tự chuyển loại vé)
 
 function normalizeToDDMMYYYY(v) {
     if (!v) return "";
@@ -328,12 +336,18 @@ window.addEventListener('paste', function(e) {
         let pastedText = (e.clipboardData || window.clipboardData).getData('text');
         resetPasteCatcherText();
         if (pastedText && pastedText.trim().length > 5) {
-            let maxType = parseInt(document.getElementById('gameType').value);
-            let draws = parseOCRTextToDraws(pastedText, maxType);
-            renderStagingTable(draws);
+            renderStagingTable(parseTextAuto(pastedText));
         }
     }
 });
+
+// Văn bản dán vào: dò loại vé theo ngày quay trước (đọc thử với dải 1..55), rồi mới bóc tách theo đúng loại vé
+function parseTextAuto(text) {
+    let cur = parseInt(document.getElementById('gameType').value);
+    let t = gameFromDates(parseOCRTextToDraws(text, 55).filter(d => d.hasDate).map(d => d.date), cur);
+    if (t !== cur) ocrNotice = switchGameType(t);
+    return parseOCRTextToDraws(text, t);
+}
 
 function resetPasteCatcherText() {
     setTimeout(() => {
@@ -359,8 +373,7 @@ async function pasteFromClipboardAPI() {
             if (item.types.includes('text/plain')) {
                 const blob = await item.getType('text/plain');
                 const text = await blob.text();
-                let maxType = parseInt(document.getElementById('gameType').value);
-                let draws = parseOCRTextToDraws(text, maxType);
+                let draws = parseTextAuto(text);
                 if (draws.length > 0) {
                     renderStagingTable(draws);
                     return;
@@ -651,6 +664,35 @@ function ocrChars(data) {            // danh sách ký tự kèm tâm (x, y) tr�
     });
     return out;
 }
+// Tìm mọi ngày DD/MM/YYYY trên trang, kèm tọa độ dọc của dòng chữ chứa nó (theo ảnh đã phóng)
+function findDateIn(text) {
+    let m = /(0[1-9]|[12]\d|3[01])\s?[\/\-\.]\s?(0[1-9]|1[0-2])\s?[\/\-\.]\s?(20\d{2})/.exec(String(text || ''));
+    return m ? `${m[1]}.${m[2]}.${m[3]}` : '';
+}
+function ocrFindDates(data) {
+    let words = [];
+    (data && data.words || []).forEach(w => {
+        if (!w || !w.text || !w.bbox) return;
+        let t = String(w.text).trim(); if (!t) return;
+        words.push({ t: t, x0: w.bbox.x0, yc: (w.bbox.y0 + w.bbox.y1) / 2, h: Math.max(1, w.bbox.y1 - w.bbox.y0) });
+    });
+    if (words.length === 0) return [];
+    words.sort((a, b) => a.yc - b.yc);
+    let lines = [], cur = [words[0]], curY = words[0].yc, curH = words[0].h;
+    for (let i = 1; i < words.length; i++) {
+        let w = words[i];
+        if (Math.abs(w.yc - curY) <= Math.max(curH, w.h) * 0.5) { cur.push(w); curY = (curY * (cur.length - 1) + w.yc) / cur.length; curH = Math.max(curH, w.h); }
+        else { lines.push({ ws: cur, y: curY }); cur = [w]; curY = w.yc; curH = w.h; }
+    }
+    lines.push({ ws: cur, y: curY });
+    let out = [];
+    lines.forEach(ln => {
+        let text = ln.ws.sort((a, b) => a.x0 - b.x0).map(w => w.t).join(' ');
+        let re = /(0[1-9]|[12]\d|3[01])\s?[\/\-\.]\s?(0[1-9]|1[0-2])\s?[\/\-\.]\s?(20\d{2})/g, m;
+        while ((m = re.exec(text)) !== null) out.push({ date: `${m[1]}.${m[2]}.${m[3]}`, y: ln.y });
+    });
+    return out;
+}
 async function ocrGridRead(worker, img, grid, scale) {
     scale = capScale(img, scale);
     let dataUrl = preprocessCanvas(img, 'contrast', scale, grid);
@@ -658,18 +700,30 @@ async function ocrGridRead(worker, img, grid, scale) {
     await worker.setParameters({ tessedit_pageseg_mode: '11', tessedit_char_whitelist: '0123456789/.-', preserve_interword_spaces: '1' });
     const ret = await worker.recognize(dataUrl);
     let chars = ocrChars(ret.data);
-    let rows = grid.rows.map(row => {
-        let ya = row.y0 * sy, yb = row.y1 * sy, left = row.rings[0].x0 * sx;
+    // Ngày quay có thể nằm cùng hàng bên trái bóng (bảng web) hoặc ở dòng chữ ngay phía trên hàng bóng (app điện thoại):
+    // mỗi ngày tìm thấy được gán cho hàng bóng GẦN NÓ NHẤT theo chiều dọc.
+    let rowDate = grid.rows.map(() => null);
+    ocrFindDates(ret.data).forEach(dt => {
+        let best = -1, bd = Infinity;
+        grid.rows.forEach((row, i) => {
+            let ya = row.y0 * sy, yb = row.y1 * sy;
+            let dist = (dt.y >= ya && dt.y <= yb) ? 0 : Math.min(Math.abs(dt.y - ya), Math.abs(dt.y - yb));
+            if (dist < bd) { bd = dist; best = i; }
+        });
+        if (best >= 0 && bd <= 2.5 * grid.D * sy && (!rowDate[best] || bd < rowDate[best].dist))
+            rowDate[best] = { date: dt.date, dist: bd, off: dt.y / sy - grid.rows[best].y0 };
+    });
+    let rows = grid.rows.map((row, i) => {
+        let ya = row.y0 * sy, yb = row.y1 * sy;
         let inRow = chars.filter(ch => ch.y >= ya && ch.y <= yb).sort((a, b) => a.x - b.x);
         let balls = row.rings.map(rg => inRow.filter(ch => ch.x >= rg.x0 * sx && ch.x <= rg.x1 * sx).map(ch => ch.c).join(''));
-        let meta = inRow.filter(ch => ch.x < left).map(ch => ch.c).join('');
-        let dm = /(0[1-9]|[12]\d|3[01])[\/\-\.](0[1-9]|1[0-2])[\/\-\.](20\d{2})/.exec(meta);
-        return { date: dm ? `${dm[1]}.${dm[2]}.${dm[3]}` : '', balls: balls };
+        return { date: rowDate[i] ? rowDate[i].date : '', dateOff: rowDate[i] ? rowDate[i].off : null, balls: balls };
     });
     return { rows: rows, dataUrl: dataUrl, sx: sx, sy: sy };
 }
 // Cắt 1 vùng của ảnh đã lọc (thêm lề trắng) rồi đọc riêng vùng đó
 function cropForOCR(srcImg, x0, y0, x1, y1) {
+    x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(srcImg.width, x1); y1 = Math.min(srcImg.height, y1);
     let w = Math.max(1, Math.round(x1 - x0)), h = Math.max(1, Math.round(y1 - y0)), m = 16;
     let c = document.createElement('canvas'); c.width = w + 2 * m; c.height = h + 2 * m;
     let cx = c.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, c.width, c.height);
@@ -677,31 +731,53 @@ function cropForOCR(srcImg, x0, y0, x1, y1) {
     return c.toDataURL('image/png');
 }
 function loadImg(url) { return new Promise((ok, fail) => { let im = new Image(); im.onload = () => ok(im); im.onerror = fail; im.src = url; }); }
-// Chuẩn hóa 1 lần đọc của 1 bóng -> giá trị hợp lệ (kèm trọng số phiếu)
+// Chuẩn hóa 1 lần đọc của 1 bóng -> giá trị hợp lệ
 function ballCandidate(s, maxType) {
     let t = String(s || '').replace(/\D/g, '');
     if (t.length < 1 || t.length > 2) return null;
     let v = parseInt(t, 10);
-    if (v >= 1 && v <= maxType) return { v: v, wgt: 1 };
-    if (t.length === 2) {                                  // số 0 bị đọc nhầm thành 6 / 8 / 9
-        if ('689'.indexOf(t[0]) !== -1 && +t[1] >= 1) return { v: +t[1], wgt: 0.5 };
-        if ('689'.indexOf(t[1]) !== -1 && +t[0] >= 1 && +t[0] * 10 <= maxType) return { v: +t[0] * 10, wgt: 0.5 };
-    }
-    return null;
+    return (v >= 1 && v <= maxType) ? { v: v, wgt: 1 } : null;
+}
+// Loại vé suy ra từ ngày quay: Mega chỉ quay T4-T6-CN, Power chỉ quay T3-T5-T7 (hai lịch không trùng nhau)
+function gameFromDates(dates, cur) {
+    let c45 = 0, c55 = 0;
+    (dates || []).forEach(d => {
+        let di = dayInfo(normalizeToDDMMYYYY(d)); if (!di) return;
+        if (SCHEDULE[45].includes(di.dow)) c45++; else if (SCHEDULE[55].includes(di.dow)) c55++;
+    });
+    return c55 > c45 ? 55 : (c45 > c55 ? 45 : cur);
+}
+function majorityDate(readings, i) {
+    let dv = {}, best = '', bn = 0;
+    readings.forEach(rd => { let dt = rd[i].date; if (dt) { dv[dt] = (dv[dt] || 0) + 1; if (dv[dt] > bn) { bn = dv[dt]; best = dt; } } });
+    return { date: best, votes: bn };
+}
+function detectGameFromGrid(grid, readings, cur) {
+    let dates = []; grid.rows.forEach((row, i) => { let d = majorityDate(readings, i).date; if (d) dates.push(d); });
+    if (dates.length > 0) return gameFromDates(dates, cur);
+    if (grid.rows.every(r => r.rings.length >= 7)) return 55;          // không đọc được ngày nào: 7 bóng mỗi hàng = Power (có bóng đặc biệt)
+    return cur;
+}
+// Đổi loại vé đang chọn cho khớp với ảnh/văn bản vừa nạp
+function switchGameType(t) {
+    let sel = document.getElementById('gameType');
+    if (parseInt(sel.value) === t) return '';
+    sel.value = String(t);
+    updateAllByGameType();
+    return `🔁 Kết quả này là ${t === 55 ? 'Power 6/55' : 'Mega 6/45'} — đã tự chuyển loại vé sang ${t === 55 ? 'Power 6/55' : 'Mega 6/45'}.`;
 }
 // Bỏ phiếu giữa các lượt đọc cho từng bóng, ràng buộc 6 số tăng dần (quy hoạch động)
 function voteGrid(grid, readings, maxType) {
     let draws = [], R = readings.length;
     for (let i = 0; i < grid.rows.length; i++) {
-        let dv = {}; readings.forEach(rd => { let dt = rd[i].date; if (dt) dv[dt] = (dv[dt] || 0) + 1; });
-        let date = '', dBest = 0; for (let k in dv) if (dv[k] > dBest) { dBest = dv[k]; date = k; }
+        let md = majorityDate(readings, i), date = md.date, dBest = md.votes;
         let cand = [];
         for (let k = 0; k < 6; k++) {
             let m = {};
             readings.forEach(rd => { let c = ballCandidate(rd[i].balls[k], maxType); if (c) m[c.v] = (m[c.v] || 0) + c.wgt; });
             cand.push(Object.keys(m).map(v => ({ v: +v, s: m[v] })));
         }
-        // best[k][j]: tổng phiếu tốt nhất khi bóng k nhận ứng viên j (ô không đọc được = bỏ trống, không ràng buộc)
+        // best[k][j]: tổng phiếu tốt nhất khi bóng k nhận ứng viên j (luôn có lựa chọn "để trống ô" thay vì bỏ cả hàng)
         let best = [], prev = [];
         for (let k = 0; k < 6; k++) {
             best.push([]); prev.push([]);
@@ -731,13 +807,29 @@ function voteGrid(grid, readings, maxType) {
     }
     return draws;
 }
-async function ocrGridPass(worker, img, grid, maxType) {
+// Hai lượt đọc đã khớp nhau hoàn toàn (mọi ngày, mọi bóng) -> không cần lượt thứ 3
+function gridReadsAgree(grid, reads) {
+    let a = reads[0].rows, b = reads[1].rows;
+    for (let i = 0; i < grid.rows.length; i++) {
+        if (!a[i].date || a[i].date !== b[i].date) return false;
+        for (let k = 0; k < 6; k++) {
+            let x = String(a[i].balls[k] || '').replace(/\D/g, ''), y = String(b[i].balls[k] || '').replace(/\D/g, '');
+            if (x.length < 1 || x.length > 2 || parseInt(x, 10) !== parseInt(y, 10)) return false;
+        }
+    }
+    return true;
+}
+async function ocrGridPass(worker, img, grid, curType) {
     let base = 120 / grid.D;                     // phóng sao cho bóng rộng ~120px (chữ số cao ~42px)
     let reads = [];
-    for (let f of [1.0, 0.86, 1.14]) reads.push(await ocrGridRead(worker, img, grid, base * f));
+    for (let f of [1.0, 0.86, 1.14]) {
+        reads.push(await ocrGridRead(worker, img, grid, base * f));
+        if (reads.length === 2 && gridReadsAgree(grid, reads)) break;
+    }
     let readings = reads.map(r => r.rows);
+    let maxType = detectGameFromGrid(grid, readings, curType);
 
-    // Ô nào chưa đủ 2 phiếu trùng nhau (máy bỏ sót hoặc các lượt lệch nhau) -> cắt riêng đúng bóng đó ra đọc lại ở cả 3 tỉ lệ
+    // Ô nào chưa đủ 2 phiếu trùng nhau (máy bỏ sót hoặc các lượt lệch nhau) -> cắt riêng đúng bóng đó ra đọc lại ở từng tỉ lệ
     let needBall = [], needDate = [];
     grid.rows.forEach((row, i) => {
         for (let k = 0; k < 6; k++) {
@@ -745,13 +837,16 @@ async function ocrGridPass(worker, img, grid, maxType) {
             readings.forEach(rd => { let c = ballCandidate(rd[i].balls[k], maxType); if (c) { m[c.v] = (m[c.v] || 0) + c.wgt; if (m[c.v] > top) top = m[c.v]; } });
             if (top < 2) needBall.push([i, k]);
         }
-        let dv = {}, dTop = 0; readings.forEach(rd => { let dt = rd[i].date; if (dt) { dv[dt] = (dv[dt] || 0) + 1; if (dv[dt] > dTop) dTop = dv[dt]; } });
-        if (dTop < 2) needDate.push(i);
+        if (majorityDate(readings, i).votes < 2) needDate.push(i);
     });
     if ((needBall.length > 0 && needBall.length <= 30) || needDate.length > 0) {
+        // Dòng ngày nằm ở đâu so với hàng bóng: học từ những hàng đã đọc được ngày
+        let offs = []; readings.forEach(rd => rd.forEach(r => { if (r.date && r.dateOff !== null) offs.push(r.dateOff); }));
+        offs.sort((a, b) => a - b);
+        let off = offs.length ? offs[Math.floor(offs.length / 2)] : null;
         for (let rd of reads) {
             let pre = await loadImg(rd.dataUrl);
-            let extra = grid.rows.map(() => ({ date: '', balls: ['', '', '', '', '', ''] }));
+            let extra = grid.rows.map(() => ({ date: '', dateOff: null, balls: ['', '', '', '', '', ''] }));
             if (needBall.length <= 30) {
                 await worker.setParameters({ tessedit_pageseg_mode: '8', tessedit_char_whitelist: '0123456789', preserve_interword_spaces: '0' });
                 for (let [i, k] of needBall) {
@@ -760,20 +855,25 @@ async function ocrGridPass(worker, img, grid, maxType) {
                     extra[i].balls[k] = String((await worker.recognize(url)).data.text || '').replace(/\D/g, '');
                 }
             }
-            if (needDate.length > 0) {
-                await worker.setParameters({ tessedit_pageseg_mode: '7', tessedit_char_whitelist: '0123456789/.-', preserve_interword_spaces: '0' });
-                for (let i of needDate) {
-                    let row = grid.rows[i];
-                    let url = cropForOCR(pre, 0, row.y0 * rd.sy, Math.max(8, row.rings[0].x0 * rd.sx - 4), row.y1 * rd.sy);
-                    let t = String((await worker.recognize(url)).data.text || '');
-                    let dm = /(0[1-9]|[12]\d|3[01])\s?[\/\-\.]\s?(0[1-9]|1[0-2])\s?[\/\-\.]\s?(20\d{2})/.exec(t);
-                    if (dm) extra[i].date = `${dm[1]}.${dm[2]}.${dm[3]}`;
+            for (let i of needDate) {
+                let row = grid.rows[i], bandH = row.y1 - row.y0, strips = [];
+                let sameBand = [0, row.y0, row.rings[0].x0 - 2, row.y1, '7'];
+                if (off !== null && (off < -0.05 * bandH || off > 1.05 * bandH)) strips.push([0, row.y0 + off - 0.45 * grid.D, img.width, row.y0 + off + 0.45 * grid.D, '7']);
+                else if (off !== null) strips.push(sameBand);
+                else { strips.push(sameBand); strips.push([0, row.y0 - 1.3 * grid.D, img.width, row.y0 - 0.02 * grid.D, '6']); }
+                for (let st of strips) {
+                    if (st[2] - st[0] < 8) continue;
+                    await worker.setParameters({ tessedit_pageseg_mode: st[4], tessedit_char_whitelist: '0123456789/.-', preserve_interword_spaces: '0' });
+                    let url = cropForOCR(pre, st[0] * rd.sx, st[1] * rd.sy, st[2] * rd.sx, st[3] * rd.sy);
+                    let dt = findDateIn((await worker.recognize(url)).data.text);
+                    if (dt) { extra[i].date = dt; break; }
                 }
             }
             readings.push(extra);
         }
+        maxType = detectGameFromGrid(grid, readings, maxType);
     }
-    return voteGrid(grid, readings, maxType);
+    return { draws: voteGrid(grid, readings, maxType), type: maxType };
 }
 
 // ---------- ĐỌC TỔNG QUÁT (ảnh không có vòng tròn/bóng màu nóng): ghép hàng theo tọa độ ----------
@@ -878,31 +978,39 @@ async function processImageForOCR(blob) {
                 }
             });
 
-            let draws = [];
+            let draws = [], notice = '';
             let grid = (filterMode === 'dual' || filterMode === 'contrast') ? detectBallGrid(img) : null;
             if (grid) {
-                stage = `Thấy ${grid.rows.length} hàng bóng — đọc từng bóng, 3 lượt bỏ phiếu`;
-                draws = await ocrGridPass(worker, img, grid, maxType);
+                stage = `Thấy ${grid.rows.length} hàng bóng — đọc từng bóng rồi bỏ phiếu`;
+                let gr = await ocrGridPass(worker, img, grid, maxType);
+                draws = gr.draws;
+                if (draws.length > 0 && gr.type !== maxType) { maxType = gr.type; notice = switchGameType(maxType); }
             }
             if (draws.length === 0) {
-                if (filterMode === 'dual') {
-                    stage = 'Xóa vòng tròn màu, đọc ngày + số';
-                    draws = (await ocrOnePass(worker, img, 'contrast', maxType)).draws;
-                    if (draws.length < 2) {                 // không ra bảng -> thử kiểu bóng tô đặc chữ trắng
-                        stage = 'Tách số trắng trong bóng màu';
-                        let r2 = await ocrOnePass(worker, img, 'invertball', maxType);
-                        if (scoreDraws(r2.draws) > scoreDraws(draws)) draws = r2.draws;
+                async function generic(type) {
+                    if (filterMode === 'dual') {
+                        stage = 'Xóa vòng tròn màu, đọc ngày + số';
+                        let out = (await ocrOnePass(worker, img, 'contrast', type)).draws;
+                        if (out.length < 2) {                 // không ra bảng -> thử kiểu bóng tô đặc chữ trắng
+                            stage = 'Tách số trắng trong bóng màu';
+                            let r2 = await ocrOnePass(worker, img, 'invertball', type);
+                            if (scoreDraws(r2.draws) > scoreDraws(out)) out = r2.draws;
+                        }
+                        return out;
                     }
-                } else {
                     stage = 'Đang đọc số từ ảnh';
-                    let r = await ocrOnePass(worker, img, filterMode, maxType);
+                    let r = await ocrOnePass(worker, img, filterMode, type);
                     previewImg.src = r.dataUrl;
-                    draws = r.draws;
+                    return r.draws;
                 }
+                draws = await generic(maxType);
+                let t2 = gameFromDates(draws.filter(d => d.hasDate).map(d => d.date), maxType);
+                if (t2 !== maxType) { maxType = t2; notice = switchGameType(t2); draws = await generic(t2); }   // ngày quay cho thấy đây là loại vé kia -> đọc lại đúng dải số
             }
 
             await worker.terminate();
             statusEl.style.display = 'none';
+            ocrNotice = notice;
             renderStagingTable(draws);
 
         } catch (err) {
@@ -1046,7 +1154,7 @@ function renderStagingTable(draws) {
             if (di && sch.length && !sch.includes(di.dow)) { d.check = true; offDay++; }
         });
         let flagged = draws.filter(d => d.check).length;
-        countEl.innerHTML = `✅ Đã bóc tách: ${draws.length} kỳ quay` +
+        countEl.innerHTML = (ocrNotice ? `<span style="color:#58a6ff;">${ocrNotice}</span><br>` : '') + `✅ Đã bóc tách: ${draws.length} kỳ quay` +
             (flagged > 0 ? ` · <span style="color:#d29922;">⚠️ ${flagged} dòng viền vàng cần so lại với ảnh</span>` : ` · đã đối chiếu khớp`) +
             (offDay > 0 && offDay * 2 >= draws.length ? `<br><span style="color:#ff7b72;">Ngày không khớp lịch quay ${maxType === 45 ? 'Mega 6/45 (T4-T6-CN)' : 'Power 6/55 (T3-T5-T7)'} — kiểm tra đã chọn đúng loại vé chưa.</span>` : '');
         // Nếu chỉ có 1 kỳ quay, tự động điền luôn xuống ô nhập chính bên dưới cho tiện
@@ -1061,6 +1169,7 @@ function renderStagingTable(draws) {
     draws.forEach((d, idx) => {
         appendStagingRowDOM(d.date, d.numbers, d.check);
     });
+    ocrNotice = '';
 }
 
 function appendStagingRowDOM(dateStr, nums, check) {
