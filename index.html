@@ -169,6 +169,13 @@ input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner
 .header-banner { background: linear-gradient(135deg, #0d1117, #0f291e); border: 1px solid #3fb950; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;}
 .header-title { font-size: 18px; font-weight: 900; margin-bottom: 5px; text-transform: uppercase; color: #3fb950;}
 .header-desc { font-size: 13px; color: #c9d1d9;}
+.sync-box { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px 12px; margin: 10px 0 14px; font-size: 12.5px; line-height: 1.55; color: #c9d1d9; text-align: left; }
+.sync-box .sync-store { font-weight: bold; color: #3fb950; margin-bottom: 3px; }
+.sync-box .sync-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.sync-box .sync-row label { display: flex; align-items: center; gap: 6px; color: #c9d1d9; cursor: pointer; }
+.sync-box .sync-row input[type=checkbox] { width: auto; margin: 0; padding: 0; }
+.sync-box .sync-row button { flex: unset; margin: 0; padding: 7px 12px; font-size: 12px; background: #1f6feb; color: #fff; border-radius: 6px; }
+.sync-box .sync-src { color: #8b949e; font-size: 11px; margin-top: 8px; line-height: 1.45; }
 
 @media(max-width:1100px){
 .wrapper{grid-template-columns:minmax(0,1fr); padding:10px; gap:12px;} .main{order:1;} .left{order:2;} .right{order:3;}
@@ -192,7 +199,7 @@ input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner
 <div class="panel left">
 <h3 style="color: #58a6ff;">📊 DATA ENGINE</h3>
 <div id="gameScopeTitle" style="font-weight: bold; font-size: 15px; margin-bottom: 5px;">Vé: Mega 6/45</div>
-<div id="totalDraw" style="font-weight: bold; color: #3fb950; margin-bottom: 15px;">Tổng nạp: 0 kỳ</div>
+<div id="totalDraw" style="font-weight: bold; color: #3fb950; margin-bottom: 15px;">Đang đọc dữ liệu...</div>
 <h4>🔥 Top số nóng (300 kỳ)</h4>
 <div id="hotList"></div>
 <h4>📈 Tần suất</h4>
@@ -209,6 +216,17 @@ input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner
 <option value="45">Mega 6/45</option>
 <option value="55">Power 6/55</option>
 </select>
+
+<!-- TỰ CẬP NHẬT KẾT QUẢ + TÌNH TRẠNG KHO DỮ LIỆU -->
+<div class="sync-box">
+    <div id="storeSummary" class="sync-store">Kho dữ liệu: đang đọc...</div>
+    <div id="syncStatus">🔄 Tự cập nhật kết quả: chưa chạy lần nào trên máy này.</div>
+    <div class="sync-row">
+        <label><input type="checkbox" id="syncAuto" onchange="setSyncAuto(this.checked)"> Tự cập nhật khi mở app</label>
+        <button onclick="syncResults(true)">🔄 Cập nhật ngay</button>
+    </div>
+    <div class="sync-src">Nguồn: kho công khai vietvudanh/vietlott-data trên GitHub, tự thu từ vietlott.vn mỗi ngày khoảng 19:00. Dữ liệu chỉ lưu trong trình duyệt của máy này. Phiên bản app: <span id="appBuild"></span></div>
+</div>
 
 <!-- KHỐI NHẬN DIỆN ẢNH CHỤP MÀN HÌNH VIETLOT (OCR) -->
 <div class="ocr-zone" id="ocrDropZone">
@@ -260,7 +278,7 @@ input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner
 
 <div class="btns">
 <button class="save" onclick="saveData()">💾 LƯU 1 KỲ & HẬU KIỂM</button>
-<button class="predict" onclick="predictDataBtn()">⚡ CHẠY MÔ HÌNH V10</button>
+<button class="predict" onclick="schedulePredict()">⚡ CHẠY MÔ HÌNH V10</button>
 </div>
 <input id="targetBox" placeholder="Ngày quay cần dự đoán (để trống = tự tính kỳ kế tiếp theo lịch quay)" onchange="predictDataBtn()">
 
@@ -1423,6 +1441,7 @@ const FEATS = [
 const PRIOR_STRUCT = 0.08;      // tiên nghiệm kế thừa V9.1 cho tầng cấu trúc Delta–Gauss–Gail Howard
 const PRIOR_DRAWS = 150;        // độ mạnh tiên nghiệm, tính bằng "số kỳ tương đương"
 const TOP_M = 12;               // số lượng "số mạnh" dùng để hậu kiểm
+const FAIR_SAMPLES = 100000;    // cỡ mẫu tổ hợp ngẫu nhiên dùng để xếp hạng công bằng bộ số vừa về
 
 // ----------------------------- Tiện ích toán -----------------------------
 function mulberry32(a) {
@@ -1613,6 +1632,8 @@ function buildModelV10(dataDesc, type, targetDate) {
     let w = Float64Array.from(prior);
     let gP = 0, hP = 0, gS = 0, hS = 0;
     let evN = 0, evHits = 0;
+    const POS_WINDOW = 400, POS_SAMPLES = 100, rngPos = mulberry32((seed ^ 0x2545F491) >>> 0);
+    let posN = 0, posSum = 0, posBins = [0, 0, 0, 0, 0];
 
     let F = []; for (let j = 0; j < J; j++) F.push(new Float64Array(W));
     let tier = new Uint8Array(W), heat = new Float64Array(W), score = new Float64Array(W);
@@ -1668,6 +1689,8 @@ function buildModelV10(dataDesc, type, targetDate) {
 
         if (t >= WARM) {
             featuresAt(t, di);
+            pairStatsAt(t);          // cả hai chỉ dùng dữ liệu của các kỳ < t
+            tiersAt(t);
 
             // (1) Dự báo "mù" kỳ t bằng trọng số chỉ học từ các kỳ < t, rồi mới chấm điểm
             if (t >= EVAL_START) {
@@ -1676,6 +1699,29 @@ function buildModelV10(dataDesc, type, targetDate) {
                 let hit = 0;
                 for (let i = 0; i < TOP_M; i++) if (nums.indexOf(ord[i]) !== -1) hit++;
                 evN++; evHits += hit;
+
+                // (1b) Bộ số thật đứng ở đâu trên thang điểm TỔ HỢP của mô hình, so với tổ hợp ngẫu nhiên lấy từ đủ N số.
+                //      Mô hình không có lợi thế -> vị trí này rải đều từ 0 (đầu bảng) đến 1 (cuối bảng).
+                if (t >= T - POS_WINDOW && consecCount(nums) <= 3) {
+                    const wP = gP / (hP + PRIOR_DRAWS), wS = (gS + PRIOR_DRAWS * PRIOR_STRUCT) / (hS + PRIOR_DRAWS);
+                    const den = pairVar > 1e-9 ? Math.sqrt(15 * pairVar) : 0;
+                    const scoreOf = c => {
+                        let s = score[c[0]] + score[c[1]] + score[c[2]] + score[c[3]] + score[c[4]] + score[c[5]];
+                        if (den > 0) {
+                            let ps = 0;
+                            for (let i = 0; i < K; i++) for (let k2 = i + 1; k2 < K; k2++) ps += pair[c[i] * W + c[k2]] - pairC0 * cntAll[c[i]] * cntAll[c[k2]];
+                            s += wP * (ps - 15 * pairMean) / den;
+                        }
+                        return s + wS * (structPoints(c[0], c[1], c[2], c[3], c[4], c[5], tier, prevFlag, idealSum, sumSigma) - sNull.mu) / sNull.sd;
+                    };
+                    let sa = scoreOf(nums), hi = 0, tie = 0, cnt = 0;
+                    while (cnt < POS_SAMPLES) {
+                        let c = randCombo(N, rngPos); if (consecCount(c) > 3) continue;
+                        cnt++; let sc = scoreOf(c); if (sc > sa) hi++; else if (sc === sa) tie++;
+                    }
+                    let u = (hi + 0.5 * tie) / POS_SAMPLES;
+                    posN++; posSum += u; posBins[Math.min(4, Math.floor(u * 5))]++;
+                }
             }
 
             // (2) Tích lũy bằng chứng của từng tín hiệu
@@ -1689,7 +1735,6 @@ function buildModelV10(dataDesc, type, targetDate) {
                     H[j][k2] += c; if (k2 !== j) H[k2][j] += c;
                 }
             }
-            pairStatsAt(t);
             if (pairVar > 1e-9) {
                 let s = 0;
                 for (let i = 0; i < K; i++) for (let k2 = i + 1; k2 < K; k2++) {
@@ -1698,7 +1743,6 @@ function buildModelV10(dataDesc, type, targetDate) {
                 }
                 gP += (s - 15 * pairMean) / Math.sqrt(15 * pairVar); hP++;
             }
-            tiersAt(t);
             gS += (structPoints(nums[0], nums[1], nums[2], nums[3], nums[4], nums[5], tier, prevFlag, idealSum, sumSigma) - sNull.mu) / sNull.sd; hS++;
 
             // (3) Cập nhật trọng số: w = (H + λI)^-1 (g + λ·tiên nghiệm)
@@ -1795,6 +1839,8 @@ function buildModelV10(dataDesc, type, targetDate) {
         signals: signals,
         uniform: { x2: x2, df: N - 1, p: chi2P(x2, N - 1), entropy: ent / Math.log(N), shrink: Math.max(0, 1 - (N - 1) / Math.max(1e-9, x2)) },
         wf: { n: evN, mean: evN > 0 ? evHits / evN : 0, exp: evExp, z: evZ, p: 1 - normalCdf(evZ) },
+        // vị trí trung bình (0-100, 50 = ngẫu nhiên; nhỏ hơn = kết quả thật hay nằm phía đầu bảng); z > 0 = tốt hơn ngẫu nhiên
+        pos: { n: posN, mean: posN > 0 ? 100 * posSum / posN : 50, z: posN > 0 ? (0.5 - posSum / posN) / Math.sqrt((1 / 12 + 1 / (6 * POS_SAMPLES)) / posN) : 0, bins: posBins },
         rel: { can: Array.from(canObs), chi: Array.from(chiObs), canTest: relTest(canObs), chiTest: relTest(chiObs) }
     };
 }
@@ -1938,8 +1984,22 @@ function runEngine(dataDesc, type, targetDate, probe) {
         cover.push(r[0]); r[0].combo.forEach(n => used[n] = 1);
     }
 
+    // Thang đo công bằng cho bộ số thật: so với tổ hợp ngẫu nhiên lấy từ ĐỦ N số (không phải chỉ các tổ hợp của pool,
+    // vì pool gồm toàn số được chấm cao nên thang pool luôn đẩy kết quả thật về cuối bảng).
+    let fairPct = null;
+    if (probe) {
+        const rngF = mulberry32((m.seed ^ 0x51ED270B) >>> 0), M = FAIR_SAMPLES;
+        let hi = 0, tie = 0, cnt = 0;
+        while (cnt < M) {
+            let c = randCombo(type, rngF); if (consecCount(c) > 3) continue;
+            cnt++; let sc = comboLLR(c[0], c[1], c[2], c[3], c[4], c[5], m);
+            if (sc > probeS) hi++; else if (sc === probeS) tie++;
+        }
+        fairPct = 100 * (hi + 0.5 * tie) / M;
+    }
+
     return {
-        m: m, topHigh: topHigh, topMid: topMid, bottomLow: bottomLow, anneal: anneal, cover: cover,
+        m: m, topHigh: topHigh, topMid: topMid, bottomLow: bottomLow, anneal: anneal, cover: cover, fairPct: fairPct,
         probeS: probeS, rank: Math.min(higher + 1, totalValid), totalValid: totalValid,
         execTime: ((performance.now() - tStart) / 1000).toFixed(2)
     };
@@ -1980,7 +2040,17 @@ function saveData(){
     if(allData.some(d => d.date === finalDate && d.type === '6/'+type)) { alert(`Kỳ quay ngày ${finalDate} đã tồn tại!`); return; }
 
     // Hậu kiểm: dựng lại đúng mô hình TRƯỚC khi biết kết quả kỳ này rồi mới đối chiếu
-    let oldValidData = getGameData(type);
+    showBacktest(type, getGameData(type), finalDate, nums);
+
+    allData.push({ type:'6/'+type, date:finalDate, numbers:nums });
+    localStorage.setItem(KEY,JSON.stringify(allData));
+    document.getElementById('pasteBox').value=''; document.getElementById('dateBox').value='';
+    for(let i=1;i<=6;i++) document.getElementById('s'+i).value='';
+    updateAllByGameType();
+}
+
+// Báo cáo hậu kiểm cho 1 kỳ: oldValidData = các kỳ CÓ TRƯỚC kỳ đó (mới nhất đứng đầu)
+function showBacktest(type, oldValidData, finalDate, nums) {
     let reportBox = document.getElementById('backtestReport');
 
     if(oldValidData.length >= 10) {
@@ -2009,20 +2079,16 @@ function saveData(){
                     Cấu trúc Nhiệt độ: <b>${hCount} Nóng - ${wCount} Ấm - ${cCount} Lạnh</b> | Tổng: <b>${nums.reduce((a,b)=>a+b,0)}</b><br>
                     Điểm V10: <b>${toPts(res.probeS).toFixed(1)} pts</b>
                 </div>
-                <div class="bt-rank">Hạng: ${res.rank.toLocaleString()} / ${res.totalValid.toLocaleString()}</div>
-                <div style="color:#3fb950; font-weight:bold; font-size:13px; margin-top:5px;">Vị trí phân bổ: Dải bách phân vị ${percentile}/100 (so với các tổ hợp của pool 32 số)</div>
+                <div class="bt-rank">Vị trí: top ${res.fairPct.toFixed(1)}%</div>
+                <div style="color:#3fb950; font-weight:bold; font-size:13px; margin-top:5px;">So với ${FAIR_SAMPLES.toLocaleString()} tổ hợp ngẫu nhiên lấy từ đủ ${type} số (0% = đầu bảng điểm, 100% = cuối bảng).</div>
+                <div style="color:#8b949e; font-size:12px; margin-top:4px; line-height:1.5;">Mô hình không có lợi thế thì con số này rơi ngẫu nhiên đều từ 0% đến 100%; phải nhiều kỳ dồn về đầu bảng mới là dấu hiệu đoán đúng hướng — xem dòng 📊 trong bảng dự đoán.<br>
+                Hạng trong pool 32: ${res.rank.toLocaleString()} / ${res.totalValid.toLocaleString()} (${percentile}/100) — thang này luôn lệch về cuối vì pool chỉ gồm các số được chấm cao.</div>
                 <div class="bt-detail" style="margin-top:10px; border-top:1px solid #30363d; padding-top:8px;">
                     Top ${TOP_M} số mạnh trúng: <b>${hit12}/6</b> (ngẫu nhiên kỳ vọng ${(TOP_M*6/type).toFixed(2)}) · Pool 32 chứa: <b>${inPool}/6</b><br>
                     Vé khớp nhiều nhất trước khi quay — Đỉnh: <b>${maxMatch(res.topHigh, nums)}</b> · Trung vị: <b>${maxMatch(res.topMid, nums)}</b> · Hạ vị: <b>${maxMatch(res.bottomLow, nums)}</b> · Luyện kim: <b>${maxMatch(res.anneal, nums)}</b> · Bộ phủ: <b>${maxMatch(res.cover, nums)}</b> số
                 </div>`;
         }
     }
-
-    allData.push({ type:'6/'+type, date:finalDate, numbers:nums });
-    localStorage.setItem(KEY,JSON.stringify(allData));
-    document.getElementById('pasteBox').value=''; document.getElementById('dateBox').value='';
-    for(let i=1;i<=6;i++) document.getElementById('s'+i).value='';
-    updateAllByGameType();
 }
 
 function removeItemExact(type, date){
@@ -2038,13 +2104,19 @@ function updateAllByGameType() {
     const type=document.getElementById('gameType').value;
     document.getElementById('gameScopeTitle').innerHTML = `Vé: ${type === '45' ? 'Mega 6/45' : 'Power 6/55'}`;
 
+    try { localStorage.setItem(GAME_KEY, type); } catch (e) {}
+
     let filteredData = getGameData(type);
+    let all = JSON.parse(localStorage.getItem(KEY) || '[]');
+    let n45 = all.filter(x => x.type === '6/45').length, n55 = all.filter(x => x.type === '6/55').length;
     document.getElementById('totalDraw').innerHTML = `Tổng nạp: ${filteredData.length} kỳ`;
+    document.getElementById('storeSummary').innerHTML = `Kho dữ liệu trên máy này: ${n45} kỳ Mega 6/45 · ${n55} kỳ Power 6/55` +
+        (filteredData.length ? ` <span style="color:#8b949e; font-weight:normal;">(đang xem ${GAME_NAME[type]}, mới nhất ${filteredData[0].date})</span>` : ` <span style="color:#d29922; font-weight:normal;">(${GAME_NAME[type]} chưa có kỳ nào)</span>`);
 
     let recent300 = filteredData.slice(0, 300);
     renderHeatMap(recent300, parseInt(type)); renderHot(recent300, parseInt(type)); renderTrend(recent300);
     renderHistory(filteredData);
-    predictDataBtn();
+    schedulePredict();
 }
 
 function predictDataBtn() {
@@ -2099,6 +2171,14 @@ function renderPrediction(res, totalDraws) {
                   : (wf.z >= 2 ? 'Vượt mức ngẫu nhiên, có ý nghĩa thống kê.'
                   : (wf.z > 0 ? 'Cao hơn mức ngẫu nhiên nhưng chưa đủ ý nghĩa thống kê (cần z ≥ 2).' : 'Chưa vượt mức ngẫu nhiên.'));
 
+    const pos = m.pos, posTot = Math.max(1, pos.n);
+    let posVerdict = pos.n < 30 ? 'Chưa đủ kỳ để kết luận.'
+                   : (pos.z >= 2 ? 'Kết quả thật dồn về phía đầu bảng điểm, có ý nghĩa thống kê.'
+                   : (pos.z <= -2 ? 'Kết quả thật dồn về phía cuối bảng điểm (mô hình đang chấm ngược), có ý nghĩa thống kê.'
+                   : 'Rải đều như ngẫu nhiên: thang điểm chưa phân biệt được bộ số sẽ về.'));
+    let posCells = ['Top 20%', '20–40%', '40–60%', '60–80%', 'Cuối 20%'].map((lb, i) =>
+        `<td class="num" style="text-align:center;"><span style="color:#8b949e;">${lb}</span><br><b>${(100 * pos.bins[i] / posTot).toFixed(0)}%</b></td>`).join('');
+
     let sigRows = m.signals.map(s => `<tr><td><b>${s.name}</b><br><span style="color:#8b949e;">${s.sub}</span></td>
         <td class="num">${fmtZ(s.z)}</td><td class="num">${(s.w >= 0 ? '+' : '') + s.w.toFixed(3)}</td><td>${sigPill(s.z)}</td></tr>`).join('');
 
@@ -2137,6 +2217,10 @@ function renderPrediction(res, totalDraws) {
 
         <div class="lab-h">🧪 Hậu kiểm tiến ${wf.n} kỳ (dự báo mù, không nhìn trước tương lai)</div>
         <div>Top ${TOP_M} trúng trung bình <b>${wf.mean.toFixed(3)}</b> số/kỳ — mức ngẫu nhiên <b>${wf.exp.toFixed(3)}</b> · z = <b>${fmtZ(wf.z)}</b> · p = ${fmtP(wf.p)}<br>→ ${wfVerdict}</div>
+
+        <div class="lab-h">📊 Bộ số thật đứng ở đâu trên thang điểm mô hình (${pos.n} kỳ gần nhất, dự báo mù)</div>
+        <table><tr>${posCells}</tr></table>
+        <div>Mỗi ô ngẫu nhiên là 20%. Vị trí trung bình: top <b>${pos.mean.toFixed(1)}%</b> — mức ngẫu nhiên 50% · z = <b>${fmtZ(pos.z)}</b><br>→ ${posVerdict}</div>
 
         <details>
         <summary>🔬 Phòng thí nghiệm: kiểm định máy quay · bảng tín hiệu · Ngũ hành</summary>
@@ -2227,13 +2311,21 @@ function renderTrend(filteredData){
     });
 }
 
-function renderHistory(filteredData){
+function renderHistory(filteredData, showAll){
     document.getElementById('history').innerHTML=''; if(filteredData.length === 0) return;
+    const LIMIT = 60, total = filteredData.length;
+    if (!showAll && total > LIMIT) filteredData = filteredData.slice(0, LIMIT);
     filteredData.forEach((item)=>{ let div=document.createElement('div'); div.className='history-item';
         let dateDisplay = item.date; if (getTimestamp(item.date) === 0) dateDisplay = `<span style="color:red; font-weight:bold">[LỖI] ${item.date}</span>`;
         div.innerHTML=`<span style="color:#c9d1d9;">[${dateDisplay}] <b style="color:${item.type==='6/45'?'#1f6feb':'#58a6ff'}">(${item.type})</b>: <b>${item.numbers.map(x=>String(x).padStart(2,'0')).join(' - ')}</b></span><button class="delete-btn" onclick="removeItemExact('${item.type}', '${item.date}')">Xóa</button>`;
         document.getElementById('history').appendChild(div);
     });
+    if (!showAll && total > LIMIT) {
+        let more = document.createElement('button');
+        more.textContent = `Hiện tất cả ${total} kỳ`; more.style.cssText = 'margin-top:10px; background:#21262d; color:#c9d1d9;';
+        more.onclick = () => renderHistory(getGameData(document.getElementById('gameType').value), true);
+        document.getElementById('history').appendChild(more);
+    }
 }
 
 function importData(event) {
@@ -2264,7 +2356,156 @@ function exportData() {
     a.href = URL.createObjectURL(blob); a.download = `vietlott_V10_backup_${new Date().toISOString().slice(0,10)}.txt`; a.click();
 }
 
-updateAllByGameType();
+// =========================================================================
+// TỰ CẬP NHẬT KẾT QUẢ: tải file kết quả công khai (thu tự động từ vietlott.vn mỗi ngày) rồi gộp vào kho trong máy
+// =========================================================================
+const APP_BUILD = '12.11.2026 · bản 7';
+const SYNC_SRC = {
+    45: 'https://raw.githubusercontent.com/vietvudanh/vietlott-data/main/data/power645.jsonl',
+    55: 'https://raw.githubusercontent.com/vietvudanh/vietlott-data/main/data/power655.jsonl'
+};
+const SYNC_KEY = 'vietlott_ai_sync', SYNC_UNDO_KEY = 'vietlott_ai_before_sync', GAME_KEY = 'vietlott_ai_game';
+let syncBusy = false;
+
+function getSyncCfg() { try { return Object.assign({ auto: true, last: 0, msg: '' }, JSON.parse(localStorage.getItem(SYNC_KEY) || '{}')); } catch (e) { return { auto: true, last: 0, msg: '' }; } }
+function setSyncCfg(patch) { let c = Object.assign(getSyncCfg(), patch); localStorage.setItem(SYNC_KEY, JSON.stringify(c)); return c; }
+function setSyncStatus(html) { document.getElementById('syncStatus').innerHTML = html; }
+function setSyncAuto(on) { setSyncCfg({ auto: !!on }); if (on) syncResults(true); }
+
+// Mỗi dòng của nguồn: {"date":"2026-11-11","id":"01587","result":[3,11,14,23,25,43]} (Power có thêm bóng đặc biệt thứ 7)
+// Chỉ nhận dòng đúng khuôn: ngày hợp lệ, đủ 6 số nguyên khác nhau trong dải của loại vé.
+function parseSyncFile(text, type) {
+    let out = [];
+    String(text).split(/\r?\n/).forEach(line => {
+        line = line.trim(); if (!line) return;
+        let r; try { r = JSON.parse(line); } catch (e) { return; }
+        let m = r && typeof r.date === 'string' && r.date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!m || !Array.isArray(r.result)) return;
+        let date = normalizeToDDMMYYYY(`${m[3]}.${m[2]}.${m[1]}`); if (!date) return;
+        let nums = r.result.slice(0, 6).map(Number);
+        if (nums.length < 6 || nums.some(v => !Number.isInteger(v) || v < 1 || v > type) || new Set(nums).size < 6) return;
+        out.push({ type: '6/' + type, date: date, numbers: nums.sort((a, b) => a - b) });
+    });
+    return out;
+}
+
+// Gộp vào kho: thêm kỳ còn thiếu; kỳ trùng ngày nhưng khác số thì lấy theo nguồn (có báo lại); không bao giờ tự xóa kỳ nào
+function mergeSynced(fetched) {
+    let all = JSON.parse(localStorage.getItem(KEY) || '[]'), before = JSON.stringify(all);
+    let idx = {}; all.forEach((d, i) => { idx[d.type + '|' + d.date] = i; });
+    let added = { 45: [], 55: [] }, fixed = [], extras = [];
+    [45, 55].forEach(t => {
+        let srcDates = new Set(), minTs = Infinity, maxTs = 0;
+        (fetched[t] || []).forEach(r => {
+            let ts = getTimestamp(r.date); srcDates.add(r.date); if (ts < minTs) minTs = ts; if (ts > maxTs) maxTs = ts;
+            let k = r.type + '|' + r.date;
+            if (!(k in idx)) { all.push(r); idx[k] = all.length - 1; added[t].push(r); }
+            else {
+                let cur = all[idx[k]];
+                if ((cur.numbers || []).join('-') !== r.numbers.join('-')) { fixed.push({ type: t, date: r.date }); cur.numbers = r.numbers; }
+            }
+        });
+        // Kỳ đang có trong máy nhưng nguồn không có -> chỉ báo, không tự xóa. Tính là đáng ngờ khi:
+        // ngày nằm trong khoảng nguồn đã phủ, hoặc ngày đó không phải ngày quay của loại vé này (vd kỳ rác bị gán ngày hôm nay).
+        all.forEach(d => {
+            if (d.type !== '6/' + t || srcDates.has(d.date)) return;
+            let ts = getTimestamp(d.date), di = dayInfo(d.date);
+            if ((ts >= minTs && ts <= maxTs) || (di && !SCHEDULE[t].includes(di.dow))) extras.push({ type: t, date: d.date });
+        });
+    });
+    let changed = added[45].length + added[55].length + fixed.length > 0;
+    if (changed) { localStorage.setItem(SYNC_UNDO_KEY, before); localStorage.setItem(KEY, JSON.stringify(all)); }
+    return { added: added, fixed: fixed, extras: extras, changed: changed };
+}
+
+async function syncResults(manual) {
+    if (syncBusy) return;
+    let cfg = getSyncCfg();
+    if (!manual && (!cfg.auto || Date.now() - cfg.last < 10 * 60 * 1000)) { if (cfg.msg) setSyncStatus(cfg.msg); return; }
+    syncBusy = true;
+    setSyncStatus('⏳ Đang tải kết quả mới...');
+    try {
+        let fetched = {};
+        for (let t of [45, 55]) {
+            let resp = await fetch(SYNC_SRC[t], { cache: 'no-store' });
+            if (!resp.ok) throw new Error('máy chủ trả mã ' + resp.status);
+            let rows = parseSyncFile(await resp.text(), t);
+            if (rows.length < 500) throw new Error('nguồn trả về dữ liệu bất thường');
+            fetched[t] = rows;
+        }
+        const curType = parseInt(document.getElementById('gameType').value);
+        let prevLatest = getGameData(curType)[0];
+        let res = mergeSynced(fetched);
+        let latest = t => { let d = getGameData(t)[0]; return d ? d.date : '—'; };
+        let now = new Date(), hhmm = `${pad2(now.getHours())}:${pad2(now.getMinutes())} ngày ${pad2(now.getDate())}/${pad2(now.getMonth() + 1)}`;
+        let list = a => a.slice(0, 6).map(x => `${x.date} (${GAME_NAME[x.type]})`).join(', ') + (a.length > 6 ? ` … và ${a.length - 6} kỳ nữa` : '');
+        let msg = `✅ Đã cập nhật lúc ${hhmm}: ` +
+            (res.added[45].length + res.added[55].length > 0 ? `thêm <b>${res.added[45].length}</b> kỳ Mega, <b>${res.added[55].length}</b> kỳ Power` : 'không có kỳ mới') +
+            ` · Mega đến ${latest(45)} · Power đến ${latest(55)}` +
+            (res.fixed.length ? `<br>✏️ Đã sửa ${res.fixed.length} kỳ khác số so với nguồn: ${list(res.fixed)}` : '') +
+            (res.extras.length ? `<br><span style="color:#d29922;">⚠️ ${res.extras.length} kỳ trong máy không có ở nguồn (thường do nhập/đọc sai ngày): ${list(res.extras)}</span> <a href="#" onclick="removeSyncExtras(); return false;" style="color:#ff7b72;">Xóa các kỳ này</a>` : '') +
+            (res.changed ? ` <a href="#" onclick="undoSync(); return false;" style="color:#58a6ff;">Hoàn tác</a>` : '');
+        setSyncCfg({ last: Date.now(), msg: msg, extras: res.extras });
+        setSyncStatus(msg);
+        if (res.changed) {
+            // Có kỳ mới của loại vé đang xem -> chấm hậu kiểm kỳ mới nhất bằng mô hình dựng trên các kỳ trước nó
+            let cur = getGameData(curType), newest = cur[0];
+            if (newest && res.added[curType].length > 0 && (!prevLatest || getTimestamp(newest.date) > getTimestamp(prevLatest.date))) {
+                showBacktest(curType, cur.slice(1), newest.date, newest.numbers);
+            }
+            updateAllByGameType();
+        }
+    } catch (e) {
+        setSyncStatus(`<span style="color:#d29922;">⚠️ Không tải được kết quả tự động (${e && e.message ? e.message : 'mất mạng?'}). App vẫn dùng dữ liệu đang có.</span>` + (cfg.msg ? `<br><span style="color:#8b949e;">Lần trước: ${cfg.msg}</span>` : ''));
+    }
+    syncBusy = false;
+}
+// Xóa các kỳ mà lần cập nhật gần nhất báo là không có ở nguồn
+function removeSyncExtras() {
+    let ex = getSyncCfg().extras || [];
+    if (ex.length === 0) return;
+    if (!confirm(`Xóa ${ex.length} kỳ không có ở nguồn khỏi kho dữ liệu?\n` + ex.slice(0, 10).map(x => `${x.date} (${GAME_NAME[x.type]})`).join('\n'))) return;
+    let keys = new Set(ex.map(x => '6/' + x.type + '|' + x.date));
+    let all = JSON.parse(localStorage.getItem(KEY) || '[]').filter(d => !keys.has(d.type + '|' + d.date));
+    localStorage.setItem(KEY, JSON.stringify(all));
+    let msg = `🧹 Đã xóa ${ex.length} kỳ không có ở nguồn. Bấm "Cập nhật ngay" để kiểm tra lại.`;
+    setSyncCfg({ msg: msg, extras: [] }); setSyncStatus(msg);
+    updateAllByGameType();
+}
+// Trả kho dữ liệu về đúng trạng thái trước lần cập nhật gần nhất, và tắt tự cập nhật để nó không ghi lại
+function undoSync() {
+    let snap = localStorage.getItem(SYNC_UNDO_KEY);
+    if (!snap) { alert('Không còn bản lưu để hoàn tác.'); return; }
+    if (!confirm('Trả kho dữ liệu về trạng thái trước lần tự cập nhật gần nhất và TẮT tự cập nhật?')) return;
+    localStorage.setItem(KEY, snap); localStorage.removeItem(SYNC_UNDO_KEY);
+    let msg = '↩️ Đã hoàn tác lần cập nhật gần nhất. Tự cập nhật đang tắt.';
+    setSyncCfg({ auto: false, msg: msg }); document.getElementById('syncAuto').checked = false; setSyncStatus(msg);
+    document.getElementById('backtestReport').style.display = 'none';
+    updateAllByGameType();
+}
+
+// Chạy mô hình sau khi màn hình đã kịp vẽ dữ liệu (để mở app thấy ngay số kỳ + lịch sử, không phải chờ màn hình trống)
+let predictTimer = null;
+function schedulePredict() {
+    const type = parseInt(document.getElementById('gameType').value), n = getGameData(type).length;
+    clearTimeout(predictTimer); predictTimer = null;
+    if (n < 10) { predictDataBtn(); return; }
+    document.getElementById('resultBox').innerHTML = `<div class="metric-item">⏳ Đang chạy mô hình trên ${n} kỳ ${GAME_NAME[type]}...</div>`;
+    predictTimer = setTimeout(() => { predictTimer = null; predictDataBtn(); }, 40);
+}
+
+// ------------------------------ KHỞI ĐỘNG ------------------------------
+(function () {
+    let g = localStorage.getItem(GAME_KEY);                      // mở lại đúng loại vé lần trước đang xem
+    if (g === '45' || g === '55') document.getElementById('gameType').value = g;
+    let cfg = getSyncCfg();
+    document.getElementById('syncAuto').checked = !!cfg.auto;
+    document.getElementById('appBuild').textContent = APP_BUILD;
+    if (cfg.msg) setSyncStatus(cfg.msg);
+    if (navigator.storage && navigator.storage.persist) { try { navigator.storage.persist(); } catch (e) {} }   // xin trình duyệt đừng tự dọn kho dữ liệu
+    updateAllByGameType();
+    setTimeout(() => syncResults(false), 600);
+})();
 </script>
 
 </body>
