@@ -135,6 +135,22 @@ input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner
 .title-mid { color: #d29922; font-size: 14px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase;}
 .title-near-bottom { color: #a371f7; font-size: 14px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase;}
 .title-global { color: #58a6ff; font-size: 14px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase;}
+.block-zone { background: #1c1a0e; border: 1px solid #e3b341; border-left: 4px solid #e3b341; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; }
+.title-zone { color: #e3b341; font-size: 14px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase; }
+.zone-table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.4; }
+.zone-table th, .zone-table td { padding: 5px 4px; border-bottom: 1px solid #30363d; text-align: left; vertical-align: top; }
+.zone-table th { color: #8b949e; }
+.zone-table .num { text-align: right; font-family: monospace; white-space: nowrap; }
+.zone-note { color: #8b949e; font-size: 11.5px; line-height: 1.5; margin-top: 5px; }
+.zone-pick { margin: 12px 0 8px; padding: 12px; border-radius: 8px; background: rgba(227,179,65,0.10); border: 1px dashed #e3b341; text-align: center; }
+.zone-pick-label { color: #e3b341; font-size: 11.5px; font-weight: bold; letter-spacing: 0.3px; }
+.zone-pick-main { color: #fff; font-family: monospace; font-size: clamp(15px, 5vw, 22px); font-weight: 900; margin-top: 6px; white-space: nowrap; }
+.zone-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-top: 8px; }
+.zone-bar div { text-align: center; padding: 5px 0; border-radius: 4px; background: #21262d; color: #8b949e; font-size: 12px; font-weight: bold; }
+.zone-bar div.on { background: #1f6feb; color: #fff; }
+.bt-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 4px; }
+.bt-table td { padding: 5px 4px; border-bottom: 1px solid #21262d; vertical-align: top; text-align: left; color: #c9d1d9; }
+.bt-table .num { text-align: right; font-family: monospace; white-space: nowrap; }
 .title-cover { color: #39d353; font-size: 14px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase;}
 
 /* PHÒNG THÍ NGHIỆM V10 */
@@ -1579,12 +1595,72 @@ function structPoints(n1, n2, n3, n4, n5, n6, tier, prevFlag, idealSum, sumSigma
 
     return hwc + delta + gauss + decade + oddEven + repB;
 }
-// Trung bình & độ lệch chuẩn của điểm cấu trúc khi tổ hợp hoàn toàn ngẫu nhiên (mốc so sánh)
-function calibrateStructNull(N, rng, idealSum, sumSigma) {
+// Kỳ vọng CHÍNH XÁC của điểm cấu trúc khi bộ 6 số hoàn toàn ngẫu nhiên (cộng kỳ vọng của từng thành phần, tính bằng tổ hợp / quy hoạch động).
+// Mốc này phải chính xác tuyệt đối: nó bị trừ đi ở mỗi kỳ trong hơn nghìn kỳ, lệch 1 điểm là thành "tín hiệu cấu trúc" giả.
+function structNullMean(N, idealSum, sumSigma) {
+    const K = K_DRAW;
+    function C(n, k) { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = r * (n - k + i) / i; return r; }
+    const tot = C(N, K);
+    let e = 0;
+    // (1) Nóng/Ấm/Lạnh: phân phối siêu bội đa biến theo cỡ 3 tầng
+    let nh = Math.round(N * 0.30), nw = Math.round(N * 0.70) - nh, nc = N - nh - nw;
+    for (let h = 0; h <= K; h++) for (let w = 0; w + h <= K; w++) {
+        let c = K - h - w, pr = C(nh, h) * C(nw, w) * C(nc, c) / tot, v = 0;
+        if ((h === 2 && w === 3 && c === 1) || (h === 3 && w === 2 && c === 1) || (h === 2 && w === 2 && c === 2)) v = 28;
+        else if (h >= 1 && h <= 3 && w >= 1 && w <= 3 && c >= 1 && c <= 2) v = 18;
+        else if (h >= 5 || c >= 4) v = -15;
+        e += pr * v;
+    }
+    // (2) chẵn lẻ
+    let no = Math.ceil(N / 2), ne = Math.floor(N / 2);
+    for (let o = 0; o <= K; o++) e += C(no, o) * C(ne, K - o) / tot * (o === 3 ? 12 : ((o === 2 || o === 4) ? 9 : 0));
+    // (3) số lặp lại từ kỳ trước
+    for (let r = 0; r <= K; r++) e += C(K, r) * C(N - K, K - r) / tot * (r <= 1 ? 10 : (r === 2 ? 3 : -12));
+    // (4) số nhóm thập phân khác nhau
+    let sizes = []; for (let n = 1; n <= N; n++) { let d = Math.floor(n / 10); sizes[d] = (sizes[d] || 0) + 1; }
+    let G = sizes.length, dp = []; for (let j = 0; j <= K; j++) dp.push(new Float64Array(G + 1)); dp[0][0] = 1;
+    for (let gi = 0; gi < G; gi++) {
+        let sz = sizes[gi] || 0, nd = []; for (let j = 0; j <= K; j++) nd.push(new Float64Array(G + 1));
+        for (let j = 0; j <= K; j++) for (let d = 0; d <= G; d++) {
+            let v = dp[j][d]; if (!v) continue;
+            nd[j][d] += v;
+            for (let x = 1; x + j <= K && x <= sz; x++) nd[j + x][d + 1] += v * C(sz, x);
+        }
+        dp = nd;
+    }
+    for (let d = 1; d <= G; d++) e += dp[K][d] / tot * ((d === 4 || d === 5) ? 15 : (d === 3 ? 6 : -10));
+    // (5) tổng 6 số (chuông Gauss)
+    let maxS = K * N, ds = []; for (let k = 0; k <= K; k++) ds.push(new Float64Array(maxS + 1)); ds[0][0] = 1;
+    for (let n = 1; n <= N; n++) for (let k = K; k >= 1; k--) for (let s2 = maxS; s2 >= n; s2--) ds[k][s2] += ds[k - 1][s2 - n];
+    for (let s2 = 0; s2 <= maxS; s2++) if (ds[K][s2]) e += ds[K][s2] / tot * Math.exp(-((s2 - idealSum) * (s2 - idealSum)) / (2 * sumSigma * sumSigma)) * 20;
+    // (6) bước nhảy Delta: đi qua các số tăng dần, trạng thái = (số cuối, số bước nhỏ <=3, số bước lớn >=12)
+    let f = []; for (let l = 0; l <= N; l++) f.push(new Float64Array(36));
+    for (let l = 1; l <= N; l++) f[l][0] = 1;
+    for (let k = 2; k <= K; k++) {
+        let g = []; for (let l = 0; l <= N; l++) g.push(new Float64Array(36));
+        for (let l = 1; l <= N; l++) for (let st = 0; st < 36; st++) {
+            let v = f[l][st]; if (!v) continue;
+            let sm = (st / 6) | 0, lg = st % 6;
+            for (let l2 = l + 1; l2 <= N; l2++) { let gap = l2 - l; g[l2][(sm + (gap <= 3 ? 1 : 0)) * 6 + lg + (gap >= 12 ? 1 : 0)] += v; }
+        }
+        f = g;
+    }
+    for (let l = 1; l <= N; l++) for (let st = 0; st < 36; st++) {
+        let v = f[l][st]; if (!v) continue;
+        let sm = (st / 6) | 0, lg = st % 6;
+        e += v / tot * ((sm >= 1 && sm <= 3 && lg >= 1 && lg <= 2) ? 25 : ((sm >= 1 || lg >= 1) ? 10 : -8));
+    }
+    return e;
+}
+// Mốc so sánh của điểm cấu trúc: trung bình chính xác + độ lệch chuẩn ước lượng bằng mẫu ngẫu nhiên (hạt giống cố định theo N)
+const STRUCT_NULL_CACHE = {};        // mốc này chỉ phụ thuộc loại vé -> tính 1 lần cho mỗi N
+function calibrateStructNull(N, rngUnused, idealSum, sumSigma) {
+    if (STRUCT_NULL_CACHE[N]) return STRUCT_NULL_CACHE[N];
+    let rng = mulberry32((0xC0FFEE + N) >>> 0);
     let hotCut = Math.round(N * 0.30), warmCut = Math.round(N * 0.70);
     let perm = []; for (let i = 1; i <= N; i++) perm.push(i);
     let tier = new Uint8Array(N + 1), prevFlag = new Uint8Array(N + 1);
-    let s = 0, s2 = 0, M = 6000;
+    let s = 0, s2 = 0, M = 12000;
     for (let it = 0; it < M; it++) {
         for (let i = N - 1; i > 0; i--) { let j = Math.floor(rng() * (i + 1)); let t = perm[i]; perm[i] = perm[j]; perm[j] = t; }
         for (let i = 0; i < N; i++) tier[perm[i]] = i < hotCut ? 1 : (i < warmCut ? 2 : 3);
@@ -1593,8 +1669,9 @@ function calibrateStructNull(N, rng, idealSum, sumSigma) {
         let p = structPoints(c[0], c[1], c[2], c[3], c[4], c[5], tier, prevFlag, idealSum, sumSigma);
         s += p; s2 += p * p;
     }
-    let mu = s / M;
-    return { mu: mu, sd: Math.sqrt(Math.max(1e-9, s2 / M - mu * mu)) };
+    let muMC = s / M;
+    STRUCT_NULL_CACHE[N] = { mu: structNullMean(N, idealSum, sumSigma), sd: Math.sqrt(Math.max(1e-9, s2 / M - muMC * muMC)), muMC: muMC };
+    return STRUCT_NULL_CACHE[N];
 }
 
 // ------------------------- XÂY MÔ HÌNH (học trọng số) -------------------------
@@ -1634,6 +1711,7 @@ function buildModelV10(dataDesc, type, targetDate) {
     let evN = 0, evHits = 0;
     const POS_WINDOW = 400, POS_SAMPLES = 100, rngPos = mulberry32((seed ^ 0x2545F491) >>> 0);
     let posN = 0, posSum = 0, posBins = [0, 0, 0, 0, 0];
+    let zoneSeq = [], ruleN = 0, ruleHit = [0, 0], lastPct = null, lastZone = null;     // chuỗi khu + thành tích của 2 cách chọn khu
 
     let F = []; for (let j = 0; j < J; j++) F.push(new Float64Array(W));
     let tier = new Uint8Array(W), heat = new Float64Array(W), score = new Float64Array(W);
@@ -1714,13 +1792,22 @@ function buildModelV10(dataDesc, type, targetDate) {
                         }
                         return s + wS * (structPoints(c[0], c[1], c[2], c[3], c[4], c[5], tier, prevFlag, idealSum, sumSigma) - sNull.mu) / sNull.sd;
                     };
+                    const NS = (t === T - 1) ? 4000 : POS_SAMPLES;          // kỳ mới nhất: lấy mẫu dày hơn để xếp khu cho chắc
                     let sa = scoreOf(nums), hi = 0, tie = 0, cnt = 0;
-                    while (cnt < POS_SAMPLES) {
+                    while (cnt < NS) {
                         let c = randCombo(N, rngPos); if (consecCount(c) > 3) continue;
                         cnt++; let sc = scoreOf(c); if (sc > sa) hi++; else if (sc === sa) tie++;
                     }
-                    let u = (hi + 0.5 * tie) / POS_SAMPLES;
-                    posN++; posSum += u; posBins[Math.min(4, Math.floor(u * 5))]++;
+                    let u = (hi + 0.5 * tie) / NS, zn = Math.min(4, Math.floor(u * 5));
+                    posN++; posSum += u; posBins[zn]++;
+                    // Chấm 2 cách chọn khu TRƯỚC khi biết khu của kỳ này: (0) lặp khu kỳ trước, (1) khu hay về nhất tính tới lúc đó
+                    if (zoneSeq.length >= 30) {
+                        let c0 = [0, 0, 0, 0, 0]; zoneSeq.forEach(z => c0[z]++);
+                        let fz = 0; for (let z = 1; z < 5; z++) if (c0[z] > c0[fz]) fz = z;
+                        ruleN++; if (zoneSeq[zoneSeq.length - 1] === zn) ruleHit[0]++; if (fz === zn) ruleHit[1]++;
+                    }
+                    zoneSeq.push(zn);
+                    if (t === T - 1) { lastPct = 100 * u; lastZone = zn; }
                 }
             }
 
@@ -1840,7 +1927,18 @@ function buildModelV10(dataDesc, type, targetDate) {
         uniform: { x2: x2, df: N - 1, p: chi2P(x2, N - 1), entropy: ent / Math.log(N), shrink: Math.max(0, 1 - (N - 1) / Math.max(1e-9, x2)) },
         wf: { n: evN, mean: evN > 0 ? evHits / evN : 0, exp: evExp, z: evZ, p: 1 - normalCdf(evZ) },
         // vị trí trung bình (0-100, 50 = ngẫu nhiên; nhỏ hơn = kết quả thật hay nằm phía đầu bảng); z > 0 = tốt hơn ngẫu nhiên
-        pos: { n: posN, mean: posN > 0 ? 100 * posSum / posN : 50, z: posN > 0 ? (0.5 - posSum / posN) / Math.sqrt((1 / 12 + 1 / (6 * POS_SAMPLES)) / posN) : 0, bins: posBins },
+        pos: (function () {
+            let freqZone = 0; for (let z = 1; z < 5; z++) if (posBins[z] > posBins[freqZone]) freqZone = z;
+            let zr = h => ruleN > 0 ? (h - 0.2 * ruleN) / Math.sqrt(0.16 * ruleN) : 0;
+            let rules = [
+                { name: 'Lặp khu của kỳ vừa về', zone: zoneSeq.length ? zoneSeq[zoneSeq.length - 1] : null, n: ruleN, rate: ruleN > 0 ? ruleHit[0] / ruleN : 0, z: zr(ruleHit[0]) },
+                { name: 'Khu kết quả hay về nhất', zone: posN > 0 ? freqZone : null, n: ruleN, rate: ruleN > 0 ? ruleHit[1] / ruleN : 0, z: zr(ruleHit[1]) }
+            ];
+            // dùng cách đang đúng khu nhiều hơn; bằng nhau hoặc chưa đủ kỳ thì theo khu hay về nhất
+            let pick = (ruleN >= 30 && rules[0].zone !== null && rules[0].rate > rules[1].rate) ? 0 : 1;
+            return { n: posN, mean: posN > 0 ? 100 * posSum / posN : 50, z: posN > 0 ? (0.5 - posSum / posN) / Math.sqrt((1 / 12 + 1 / (6 * POS_SAMPLES)) / posN) : 0,
+                     bins: posBins, lastPct: lastPct, lastZone: lastZone, rules: rules, pick: pick };
+        })(),
         rel: { can: Array.from(canObs), chi: Array.from(chiObs), canTest: relTest(canObs), chiTest: relTest(chiObs) }
     };
 }
@@ -1984,6 +2082,27 @@ function runEngine(dataDesc, type, targetDate, probe) {
         cover.push(r[0]); r[0].combo.forEach(n => used[n] = 1);
     }
 
+    // Vé theo KHU: lấy mẫu tổ hợp ngẫu nhiên từ đủ N số, xếp theo điểm rồi chia 5 khu đều nhau;
+    // mỗi khu lấy 3 vé nằm sát điểm giữa khu và không trùng nhau số nào.
+    const rngZ = mulberry32((m.seed ^ 0x7F4A7C15) >>> 0), ZS = 30000;
+    let zs = [];
+    while (zs.length < ZS) {
+        let c = randCombo(type, rngZ); if (consecCount(c) > 3) continue;
+        zs.push({ combo: c, s: comboLLR(c[0], c[1], c[2], c[3], c[4], c[5], m) });
+    }
+    zs.sort((a, b) => b.s - a.s);
+    let zonePicks = [0, 1, 2, 3, 4].map(z => {
+        let a = Math.floor(ZS * z / 5), b = Math.floor(ZS * (z + 1) / 5), mid = (a + b) >> 1, out = [];
+        for (let d = 0; d < (b - a) / 2 && out.length < 3; d++) {
+            let idxs = d === 0 ? [mid] : [mid - d, mid + d];
+            for (let idx of idxs) {
+                if (idx < a || idx >= b || out.length >= 3) continue;
+                if (out.every(o => overlapCount(zs[idx].combo, o.combo) === 0)) out.push(zs[idx]);
+            }
+        }
+        return out;
+    });
+
     // Thang đo công bằng cho bộ số thật: so với tổ hợp ngẫu nhiên lấy từ ĐỦ N số (không phải chỉ các tổ hợp của pool,
     // vì pool gồm toàn số được chấm cao nên thang pool luôn đẩy kết quả thật về cuối bảng).
     let fairPct = null;
@@ -1999,7 +2118,7 @@ function runEngine(dataDesc, type, targetDate, probe) {
     }
 
     return {
-        m: m, topHigh: topHigh, topMid: topMid, bottomLow: bottomLow, anneal: anneal, cover: cover, fairPct: fairPct,
+        m: m, topHigh: topHigh, topMid: topMid, bottomLow: bottomLow, anneal: anneal, cover: cover, fairPct: fairPct, zonePicks: zonePicks,
         probeS: probeS, rank: Math.min(higher + 1, totalValid), totalValid: totalValid,
         execTime: ((performance.now() - tStart) / 1000).toFixed(2)
     };
@@ -2039,9 +2158,7 @@ function saveData(){
     let allData=JSON.parse(localStorage.getItem(KEY)||'[]');
     if(allData.some(d => d.date === finalDate && d.type === '6/'+type)) { alert(`Kỳ quay ngày ${finalDate} đã tồn tại!`); return; }
 
-    // Hậu kiểm: dựng lại đúng mô hình TRƯỚC khi biết kết quả kỳ này rồi mới đối chiếu
-    showBacktest(type, getGameData(type), finalDate, nums);
-
+    // (Phần đối chiếu "Kỳ vừa về" tự chạy lại sau khi kho dữ liệu đổi — xem scheduleLatestCheck)
     allData.push({ type:'6/'+type, date:finalDate, numbers:nums });
     localStorage.setItem(KEY,JSON.stringify(allData));
     document.getElementById('pasteBox').value=''; document.getElementById('dateBox').value='';
@@ -2049,46 +2166,119 @@ function saveData(){
     updateAllByGameType();
 }
 
-// Báo cáo hậu kiểm cho 1 kỳ: oldValidData = các kỳ CÓ TRƯỚC kỳ đó (mới nhất đứng đầu)
-function showBacktest(type, oldValidData, finalDate, nums) {
-    let reportBox = document.getElementById('backtestReport');
+// =========================================================================
+// KHU VỰC: bảng điểm của mô hình được chia 5 khu đều nhau (Khu 1 = 20% tổ hợp điểm cao nhất ... Khu 5 = 20% thấp nhất).
+//  - Sau mỗi kỳ: bộ số vừa về nằm khu nào, các vé app gợi ý trước kỳ đó trúng giải gì.
+//  - Cho kỳ tới: chọn 1 khu theo cách đang đoán khu đúng nhiều hơn trong lịch sử, rồi chốt dãy nằm giữa khu đó.
+// =========================================================================
+const ZONE_NAME = ['Khu 1 (top 20%)', 'Khu 2 (20–40%)', 'Khu 3 (40–60%)', 'Khu 4 (60–80%)', 'Khu 5 (cuối 20%)'];
+function prizeOf(type, k) {          // giải cho 1 vé 10.000đ theo số lượng số trùng
+    if (k >= 6) return type === 55 ? 'JACKPOT 1' : 'JACKPOT';
+    if (k === 5) return type === 55 ? 'Giải nhất 40 triệu (trùng thêm số đặc biệt thì là Jackpot 2)' : 'Giải nhất 10 triệu';
+    if (k === 4) return type === 55 ? 'Giải nhì 500.000đ' : 'Giải nhì 300.000đ';
+    if (k === 3) return type === 55 ? 'Giải ba 50.000đ' : 'Giải ba 30.000đ';
+    return 'không trúng';
+}
+function bestTicket(list, nums) {
+    let best = null, k = -1;
+    (list || []).forEach(x => { let c = overlapCount(x.combo, nums); if (c > k) { k = c; best = x; } });
+    return { k: Math.max(0, k), combo: best ? best.combo : null };
+}
+function zoneBar(zone, rec) {         // thanh 5 ô: ● = khu của kỳ vừa về, ⭐ = khu chọn cho kỳ tới
+    let h = '<div class="zone-bar">';
+    for (let z = 0; z < 5; z++) h += `<div class="${z === zone ? 'on' : ''}${z === rec ? ' rec' : ''}">${z + 1}${z === zone ? ' ●' : ''}${z === rec ? ' ⭐' : ''}</div>`;
+    return h + '</div>';
+}
 
-    if(oldValidData.length >= 10) {
-        reportBox.style.display = "block";
-        if(consecCount(nums) > 3) {
-            reportBox.innerHTML = `
-                <div class="bt-title">🔎 TRUY VẾT KẾT QUẢ: ${finalDate}</div>
-                <div class="bt-detail" style="color: #ff7b72;">
-                    Bộ số: <b>${fmtCombo(nums)}</b><br>
-                    Kết quả: <b>Nằm ngoài vùng quét [Quá nhiều số liên tiếp (>4 số)]</b>
-                </div>`;
-        } else {
-            let res = runEngine(oldValidData, type, finalDate, nums), m = res.m;
-            let percentile = res.totalValid > 0 ? ((res.rank / res.totalValid) * 100).toFixed(1) : "0.0";
-            let hCount = nums.filter(x => m.tier[x] === 1).length;
-            let wCount = nums.filter(x => m.tier[x] === 2).length;
-            let cCount = nums.filter(x => m.tier[x] === 3).length;
-            let hit12 = nums.filter(x => m.top12.indexOf(x) !== -1).length;
-            let inPool = nums.filter(x => m.pool.indexOf(x) !== -1).length;
+// Đối chiếu kỳ mới nhất: dựng lại đúng mô hình + các vé của app TRƯỚC khi có kết quả kỳ đó, rồi so với bộ số thật
+const CHECK_KEY = 'vietlott_ai_check_';
+let checkTimer = null;
+function latestCheckKey(type, data) { return [APP_BUILD, type, data[0].date, data[0].numbers.join('-'), data.length].join('|'); }
+function computeLatestCheck(type, data) {
+    let latest = data[0], nums = latest.numbers, old = data.slice(1);
+    let sum = { key: latestCheckKey(type, data), type: type, date: latest.date, nums: nums, total: nums.reduce((a, b) => a + b, 0) };
+    if (consecCount(nums) > 3) { sum.outOfScan = true; return sum; }
+    let res = runEngine(old, type, latest.date, nums), m = res.m, pk = m.pos.rules[m.pos.pick];
+    sum.pct = res.fairPct; sum.zone = Math.min(4, Math.floor(res.fairPct / 20)); sum.pts = toPts(res.probeS);
+    sum.rank = res.rank; sum.totalValid = res.totalValid;
+    sum.tiers = [1, 2, 3].map(t => nums.filter(x => m.tier[x] === t).length);
+    sum.hit12 = nums.filter(x => m.top12.indexOf(x) !== -1).length;
+    sum.inPool = nums.filter(x => m.pool.indexOf(x) !== -1).length;
+    sum.pickRule = pk.name; sum.pickZone = pk.zone;
+    sum.blocks = [
+        Object.assign({ name: `⭐ Dãy chốt theo khu (${pk.zone === null ? '—' : 'Khu ' + (pk.zone + 1)})` }, bestTicket(pk.zone === null ? [] : res.zonePicks[pk.zone].slice(0, 1), nums)),
+        Object.assign({ name: '🏆 Vùng đỉnh (5 vé)' }, bestTicket(res.topHigh, nums)),
+        Object.assign({ name: '⚖️ Vùng trung vị (5 vé)' }, bestTicket(res.topMid, nums)),
+        Object.assign({ name: '💀 Vùng hạ vị (5 vé)' }, bestTicket(res.bottomLow, nums)),
+        Object.assign({ name: '🌐 Luyện kim (10 vé)' }, bestTicket(res.anneal, nums)),
+        Object.assign({ name: '🛡️ Bộ phủ (5 vé)' }, bestTicket(res.cover, nums))
+    ];
+    return sum;
+}
+function renderLatestCheck(sum) {
+    let box = document.getElementById('backtestReport'), type = sum.type;
+    box.style.display = 'block';
+    let head = `<div class="bt-title">🔎 KỲ VỪA VỀ: ${sum.date} · ${GAME_NAME[type]}</div>
+        <div class="bt-detail">Bộ số: <b>${fmtCombo(sum.nums)}</b> · Tổng: <b>${sum.total}</b><br>${dayLabel(sum.date, dayInfo(sum.date))}</div>`;
+    if (sum.outOfScan) { box.innerHTML = head + `<div class="bt-detail" style="color:#ff7b72;">Bộ số có từ 5 số liên tiếp trở lên, nằm ngoài vùng app quét nên không xếp khu.</div>`; return; }
+    let bestAll = sum.blocks.reduce((a, b) => (b.k > a.k ? b : a), sum.blocks[0]);
+    let rows = sum.blocks.map(b => `<tr><td>${b.name}</td><td class="num"><b>${b.k}</b>/6</td><td>${b.k >= 3 ? `<b style="color:#3fb950;">${prizeOf(type, b.k)}</b>` : '<span style="color:#8b949e;">không trúng</span>'}${b.combo && b.k >= 2 ? `<br><span style="color:#8b949e; font-family:monospace;">${fmtCombo(b.combo)}</span>` : ''}</td></tr>`).join('');
+    box.innerHTML = head + `
+        <div class="bt-rank">Nằm ở Khu ${sum.zone + 1}/5 · top ${sum.pct.toFixed(1)}%</div>
+        ${zoneBar(sum.zone, -1)}
+        <div style="color:#8b949e; font-size:12px; margin-top:4px; line-height:1.5;">Thang điểm của mô hình (dựng từ các kỳ trước kỳ này) chia 5 khu đều nhau; so với ${FAIR_SAMPLES.toLocaleString()} tổ hợp ngẫu nhiên lấy từ đủ ${type} số. Điểm của bộ số thật: ${sum.pts.toFixed(1)}.</div>
+        <div class="bt-detail" style="margin-top:10px; border-top:1px solid #30363d; padding-top:8px;"><b>Các vé app gợi ý trước kỳ này — vé khớp nhiều nhất của từng khối:</b></div>
+        <table class="bt-table">${rows}</table>
+        <div class="bt-detail" style="margin-top:6px;">→ Tốt nhất: khớp <b>${bestAll.k}/6</b> số — <b>${prizeOf(type, bestAll.k)}</b>. Top ${TOP_M} số mạnh trúng <b>${sum.hit12}/6</b> (ngẫu nhiên kỳ vọng ${(TOP_M * 6 / type).toFixed(2)}).</div>
+        <div style="color:#8b949e; font-size:11.5px; margin-top:6px; line-height:1.5;">Nhiệt độ: ${sum.tiers[0]} Nóng - ${sum.tiers[1]} Ấm - ${sum.tiers[2]} Lạnh · Pool 32 chứa ${sum.inPool}/6 số · Hạng trong pool 32: ${sum.rank.toLocaleString()} / ${sum.totalValid.toLocaleString()} (thang pool luôn lệch về cuối).</div>`;
+}
+// Hiện phần đối chiếu kỳ mới nhất: lấy từ bộ nhớ đệm nếu đã tính, chưa thì tính sau khi bảng dự đoán đã hiện
+function scheduleLatestCheck(type, data) {
+    let box = document.getElementById('backtestReport');
+    clearTimeout(checkTimer); checkTimer = null;
+    if (data.length < 11) { box.style.display = 'none'; return; }
+    let key = latestCheckKey(type, data), cached = null;
+    try { cached = JSON.parse(localStorage.getItem(CHECK_KEY + type) || 'null'); } catch (e) {}
+    if (cached && cached.key === key) { renderLatestCheck(cached); return; }
+    box.style.display = 'block';
+    box.innerHTML = `<div class="bt-title">🔎 KỲ VỪA VỀ: ${data[0].date}</div><div class="bt-detail">⏳ Đang đối chiếu với các vé app đã gợi ý trước kỳ này...</div>`;
+    checkTimer = setTimeout(() => {
+        checkTimer = null;
+        let sum = computeLatestCheck(type, data);
+        try { localStorage.setItem(CHECK_KEY + type, JSON.stringify(sum)); } catch (e) {}
+        if (parseInt(document.getElementById('gameType').value) === type) renderLatestCheck(sum);
+    }, 60);
+}
 
-            reportBox.innerHTML = `
-                <div class="bt-title">🔎 HẬU KIỂM V10: ${finalDate}</div>
-                <div class="bt-detail">
-                    Bộ số vừa về: <b>${fmtCombo(nums)}</b><br>
-                    ${dayLabel(finalDate, m.dayT)}<br>
-                    Cấu trúc Nhiệt độ: <b>${hCount} Nóng - ${wCount} Ấm - ${cCount} Lạnh</b> | Tổng: <b>${nums.reduce((a,b)=>a+b,0)}</b><br>
-                    Điểm V10: <b>${toPts(res.probeS).toFixed(1)} pts</b>
-                </div>
-                <div class="bt-rank">Vị trí: top ${res.fairPct.toFixed(1)}%</div>
-                <div style="color:#3fb950; font-weight:bold; font-size:13px; margin-top:5px;">So với ${FAIR_SAMPLES.toLocaleString()} tổ hợp ngẫu nhiên lấy từ đủ ${type} số (0% = đầu bảng điểm, 100% = cuối bảng).</div>
-                <div style="color:#8b949e; font-size:12px; margin-top:4px; line-height:1.5;">Mô hình không có lợi thế thì con số này rơi ngẫu nhiên đều từ 0% đến 100%; phải nhiều kỳ dồn về đầu bảng mới là dấu hiệu đoán đúng hướng — xem dòng 📊 trong bảng dự đoán.<br>
-                Hạng trong pool 32: ${res.rank.toLocaleString()} / ${res.totalValid.toLocaleString()} (${percentile}/100) — thang này luôn lệch về cuối vì pool chỉ gồm các số được chấm cao.</div>
-                <div class="bt-detail" style="margin-top:10px; border-top:1px solid #30363d; padding-top:8px;">
-                    Top ${TOP_M} số mạnh trúng: <b>${hit12}/6</b> (ngẫu nhiên kỳ vọng ${(TOP_M*6/type).toFixed(2)}) · Pool 32 chứa: <b>${inPool}/6</b><br>
-                    Vé khớp nhiều nhất trước khi quay — Đỉnh: <b>${maxMatch(res.topHigh, nums)}</b> · Trung vị: <b>${maxMatch(res.topMid, nums)}</b> · Hạ vị: <b>${maxMatch(res.bottomLow, nums)}</b> · Luyện kim: <b>${maxMatch(res.anneal, nums)}</b> · Bộ phủ: <b>${maxMatch(res.cover, nums)}</b> số
-                </div>`;
-        }
-    }
+// Khối gợi ý kỳ tới theo khu vực (đặt đầu bảng dự đoán)
+function zoneAdviceHtml(res) {
+    const m = res.m, pos = m.pos, type = m.type, tot = Math.max(1, pos.n);
+    if (pos.n < 40 || !res.zonePicks) return '';
+    let pk = pos.rules[pos.pick], other = pos.rules[1 - pos.pick];
+    let cells = ZONE_NAME.map((nm, z) => `<td style="text-align:center;${z === pk.zone ? ' background:rgba(227,179,65,0.12);' : ''}"><span style="color:#8b949e;">Khu ${z + 1}</span><br><b>${(100 * pos.bins[z] / tot).toFixed(0)}%</b>${z === pos.lastZone ? '<br>● vừa về' : ''}${z === pk.zone ? '<br>⭐ chọn' : ''}</td>`).join('');
+    let ruleRows = pos.rules.map((r, i) => `<tr><td>${i === pos.pick ? '⭐ ' : ''}${r.name}</td><td class="num">${r.zone === null ? '—' : 'Khu ' + (r.zone + 1)}</td><td class="num">${r.n > 0 ? (100 * r.rate).toFixed(1) + '%' : '—'}</td><td class="num">${r.n > 0 ? fmtZ(r.z) : '—'}</td></tr>`).join('');
+    let bestZ = Math.max(pos.rules[0].z, pos.rules[1].z);
+    let verdict = pos.rules[0].n < 60 ? 'Chưa đủ kỳ để biết cách nào đoán khu tốt hơn.'
+                : (bestZ >= 2 ? 'Có cách đoán khu đúng nhiều hơn ngẫu nhiên ở mức có ý nghĩa thống kê.'
+                : 'Chưa cách nào đoán khu tốt hơn ngẫu nhiên (20%) một cách chắc chắn; dãy dưới đây đi theo cách đang nhỉnh hơn.');
+    let main = pk.zone === null ? [] : res.zonePicks[pk.zone], alt = [];
+    if (other.zone !== null && other.zone !== pk.zone && res.zonePicks[other.zone][0]) alt.push({ t: res.zonePicks[other.zone][0], why: `${other.name} → Khu ${other.zone + 1}` });
+    main.slice(1).forEach(t => { if (alt.length < 2) alt.push({ t: t, why: `cùng Khu ${pk.zone + 1}, không trùng số nào với dãy chốt` }); });
+    if (!main[0]) return '';
+    let perZone = Math.round((type === 45 ? 8145060 : 28989675) / 5);
+    return `
+    <div class="block-zone">
+        <div class="title-zone">⭐ GỢI Ý KỲ TỚI THEO KHU VỰC (${pos.n} kỳ gần nhất, dự báo mù)</div>
+        <table class="zone-table"><tr>${cells}</tr></table>
+        <div class="zone-note">Tỉ lệ kết quả thật rơi vào từng khu; ngẫu nhiên thì mỗi khu 20%. Mỗi khu chứa khoảng ${perZone.toLocaleString()} tổ hợp. Vị trí trung bình: top ${pos.mean.toFixed(1)}% (ngẫu nhiên 50%, z = ${fmtZ(pos.z)}).</div>
+        <table class="zone-table" style="margin-top:8px;"><tr><th>Cách chọn khu cho kỳ tới</th><th class="num">Chọn</th><th class="num">Đúng khu</th><th class="num">z</th></tr>${ruleRows}</table>
+        <div class="zone-note">"Đúng khu" = tỉ lệ kỳ mà khu được chọn trước đó đúng là khu kết quả rơi vào (${pos.rules[0].n} kỳ). → ${verdict}</div>
+        <div class="zone-pick">
+            <div class="zone-pick-label">DÃY CHỐT CHO KỲ ${m.targetDate} · ${pk.name} → Khu ${pk.zone + 1}</div>
+            <div class="zone-pick-main">${fmtCombo(main[0].combo)}</div>
+        </div>
+        ${alt.map((a, i) => `<div class="row-item"><span style="color:#c9d1d9;">Phương án ${i + 2}: <b>${fmtCombo(a.t.combo)}</b></span><span class="score-badge" style="background:rgba(227,179,65,0.1); color:#e3b341;">${a.why}</span></div>`).join('')}
+    </div>`;
 }
 
 function removeItemExact(type, date){
@@ -2097,7 +2287,6 @@ function removeItemExact(type, date){
     data = data.filter(x => !(x.type === type && x.date === date));
     localStorage.setItem(KEY,JSON.stringify(data));
     updateAllByGameType();
-    document.getElementById('backtestReport').style.display = "none";
 }
 
 function updateAllByGameType() {
@@ -2125,7 +2314,8 @@ function predictDataBtn() {
     let box = document.getElementById('resultBox'), targetBox = document.getElementById('targetBox');
 
     if(data.length < 10){
-        box.innerHTML=`<span style="color:#ff7b72">Cần ít nhất 10 kỳ để kích hoạt.</span>`; return;
+        box.innerHTML=`<span style="color:#ff7b72">Cần ít nhất 10 kỳ để kích hoạt.</span>`;
+        clearTimeout(checkTimer); checkTimer = null; document.getElementById('backtestReport').style.display = 'none'; return;
     }
 
     let auto = nextDrawDate(data[0].date, type);
@@ -2140,6 +2330,7 @@ function predictDataBtn() {
     let res = runEngine(data, type, target, null);
     renderPrediction(res, data.length);
     renderHeatMapModel(res.m);
+    scheduleLatestCheck(type, data);
 }
 
 function fmtP(p) { return p < 0.001 ? '< 0.001' : p.toFixed(3); }
@@ -2170,14 +2361,6 @@ function renderPrediction(res, totalDraws) {
     let wfVerdict = wf.n < 30 ? 'Chưa đủ kỳ để kết luận (cần từ 60 kỳ nạp trở lên).'
                   : (wf.z >= 2 ? 'Vượt mức ngẫu nhiên, có ý nghĩa thống kê.'
                   : (wf.z > 0 ? 'Cao hơn mức ngẫu nhiên nhưng chưa đủ ý nghĩa thống kê (cần z ≥ 2).' : 'Chưa vượt mức ngẫu nhiên.'));
-
-    const pos = m.pos, posTot = Math.max(1, pos.n);
-    let posVerdict = pos.n < 30 ? 'Chưa đủ kỳ để kết luận.'
-                   : (pos.z >= 2 ? 'Kết quả thật dồn về phía đầu bảng điểm, có ý nghĩa thống kê.'
-                   : (pos.z <= -2 ? 'Kết quả thật dồn về phía cuối bảng điểm (mô hình đang chấm ngược), có ý nghĩa thống kê.'
-                   : 'Rải đều như ngẫu nhiên: thang điểm chưa phân biệt được bộ số sẽ về.'));
-    let posCells = ['Top 20%', '20–40%', '40–60%', '60–80%', 'Cuối 20%'].map((lb, i) =>
-        `<td class="num" style="text-align:center;"><span style="color:#8b949e;">${lb}</span><br><b>${(100 * pos.bins[i] / posTot).toFixed(0)}%</b></td>`).join('');
 
     let sigRows = m.signals.map(s => `<tr><td><b>${s.name}</b><br><span style="color:#8b949e;">${s.sub}</span></td>
         <td class="num">${fmtZ(s.z)}</td><td class="num">${(s.w >= 0 ? '+' : '') + s.w.toFixed(3)}</td><td>${sigPill(s.z)}</td></tr>`).join('');
@@ -2218,10 +2401,6 @@ function renderPrediction(res, totalDraws) {
         <div class="lab-h">🧪 Hậu kiểm tiến ${wf.n} kỳ (dự báo mù, không nhìn trước tương lai)</div>
         <div>Top ${TOP_M} trúng trung bình <b>${wf.mean.toFixed(3)}</b> số/kỳ — mức ngẫu nhiên <b>${wf.exp.toFixed(3)}</b> · z = <b>${fmtZ(wf.z)}</b> · p = ${fmtP(wf.p)}<br>→ ${wfVerdict}</div>
 
-        <div class="lab-h">📊 Bộ số thật đứng ở đâu trên thang điểm mô hình (${pos.n} kỳ gần nhất, dự báo mù)</div>
-        <table><tr>${posCells}</tr></table>
-        <div>Mỗi ô ngẫu nhiên là 20%. Vị trí trung bình: top <b>${pos.mean.toFixed(1)}%</b> — mức ngẫu nhiên 50% · z = <b>${fmtZ(pos.z)}</b><br>→ ${posVerdict}</div>
-
         <details>
         <summary>🔬 Phòng thí nghiệm: kiểm định máy quay · bảng tín hiệu · Ngũ hành</summary>
         <div class="lab-h">⚙️ Kiểm định máy quay (χ² phân phối đều, ${m.T} kỳ)</div>
@@ -2232,6 +2411,8 @@ function renderPrediction(res, totalDraws) {
         ${relHtml}
         </details>
     </div>
+
+    ${zoneAdviceHtml(res)}
 
     <div class="block-top">
         <div class="title-top">🏆 1. VÙNG CỘNG HƯỞNG ĐỈNH (Pool 32 số, mỗi vé khác nhau ≥ 2 số)</div>
@@ -2359,7 +2540,7 @@ function exportData() {
 // =========================================================================
 // TỰ CẬP NHẬT KẾT QUẢ: tải file kết quả công khai (thu tự động từ vietlott.vn mỗi ngày) rồi gộp vào kho trong máy
 // =========================================================================
-const APP_BUILD = '12.11.2026 · bản 7';
+const APP_BUILD = '13.11.2026 · bản 8';
 const SYNC_SRC = {
     45: 'https://raw.githubusercontent.com/vietvudanh/vietlott-data/main/data/power645.jsonl',
     55: 'https://raw.githubusercontent.com/vietvudanh/vietlott-data/main/data/power655.jsonl'
@@ -2434,7 +2615,6 @@ async function syncResults(manual) {
             fetched[t] = rows;
         }
         const curType = parseInt(document.getElementById('gameType').value);
-        let prevLatest = getGameData(curType)[0];
         let res = mergeSynced(fetched);
         let latest = t => { let d = getGameData(t)[0]; return d ? d.date : '—'; };
         let now = new Date(), hhmm = `${pad2(now.getHours())}:${pad2(now.getMinutes())} ngày ${pad2(now.getDate())}/${pad2(now.getMonth() + 1)}`;
@@ -2448,12 +2628,7 @@ async function syncResults(manual) {
         setSyncCfg({ last: Date.now(), msg: msg, extras: res.extras });
         setSyncStatus(msg);
         if (res.changed) {
-            // Có kỳ mới của loại vé đang xem -> chấm hậu kiểm kỳ mới nhất bằng mô hình dựng trên các kỳ trước nó
-            let cur = getGameData(curType), newest = cur[0];
-            if (newest && res.added[curType].length > 0 && (!prevLatest || getTimestamp(newest.date) > getTimestamp(prevLatest.date))) {
-                showBacktest(curType, cur.slice(1), newest.date, newest.numbers);
-            }
-            updateAllByGameType();
+            updateAllByGameType();       // bảng dự đoán + phần đối chiếu "Kỳ vừa về" tự tính lại
         }
     } catch (e) {
         setSyncStatus(`<span style="color:#d29922;">⚠️ Không tải được kết quả tự động (${e && e.message ? e.message : 'mất mạng?'}). App vẫn dùng dữ liệu đang có.</span>` + (cfg.msg ? `<br><span style="color:#8b949e;">Lần trước: ${cfg.msg}</span>` : ''));
@@ -2480,7 +2655,6 @@ function undoSync() {
     localStorage.setItem(KEY, snap); localStorage.removeItem(SYNC_UNDO_KEY);
     let msg = '↩️ Đã hoàn tác lần cập nhật gần nhất. Tự cập nhật đang tắt.';
     setSyncCfg({ auto: false, msg: msg }); document.getElementById('syncAuto').checked = false; setSyncStatus(msg);
-    document.getElementById('backtestReport').style.display = 'none';
     updateAllByGameType();
 }
 
