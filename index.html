@@ -144,7 +144,14 @@ input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner
 .zone-note { color: #8b949e; font-size: 11.5px; line-height: 1.5; margin-top: 5px; }
 .zone-pick { margin: 12px 0 8px; padding: 12px; border-radius: 8px; background: rgba(227,179,65,0.10); border: 1px dashed #e3b341; text-align: center; }
 .zone-pick-label { color: #e3b341; font-size: 11.5px; font-weight: bold; letter-spacing: 0.3px; }
-.zone-pick-main { color: #fff; font-family: monospace; font-size: clamp(15px, 5vw, 22px); font-weight: 900; margin-top: 6px; white-space: nowrap; }
+.zone-pick { container-type: inline-size; }
+.zone-pick-main { color: #fff; font-family: monospace; font-size: 16px; font-size: clamp(12px, 5.5cqi, 22px); font-weight: 900; margin-top: 6px; white-space: nowrap; }
+.zone-sub { color: #e3b341; font-size: 12.5px; font-weight: 900; margin-top: 14px; padding-top: 10px; border-top: 1px dashed rgba(227,179,65,0.45); }
+.zx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; margin-top: 8px; }
+.zx-card { container-type: inline-size; background: rgba(88,166,255,0.06); border: 1px solid #30363d; border-radius: 8px; padding: 10px; text-align: center; min-width: 0; }
+.zx-label { color: #58a6ff; font-size: 11.5px; font-weight: bold; }
+.zx-main { color: #fff; font-family: monospace; font-size: 15px; font-size: clamp(12px, 5.5cqi, 20px); font-weight: 900; margin: 6px 0 4px; white-space: nowrap; }
+.zx-stat { color: #c9d1d9; font-size: 11.5px; line-height: 1.45; margin-top: 2px; }
 .zone-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-top: 8px; }
 .zone-bar div { text-align: center; padding: 5px 0; border-radius: 4px; background: #21262d; color: #8b949e; font-size: 12px; font-weight: bold; }
 .zone-bar div.on { background: #1f6feb; color: #fff; }
@@ -2006,6 +2013,107 @@ function annealSearch(m, universe, rng, restarts, steps, tempScale, bag) {
     return res;
 }
 
+// =========================================================================
+// VÉ THEO KHU. Thang điểm của mô hình chia 5 khu đều nhau theo mẫu tổ hợp ngẫu nhiên lấy từ đủ N số
+// (Khu 1 = 20% tổ hợp điểm cao nhất ... Khu 5 = 20% thấp nhất).
+//  (a) zonePicks: mỗi khu 3 vé nằm sát điểm giữa khu, không trùng số nào (giữ nguyên như bản 8).
+//  (b) zoneExtra[3], zoneExtra[4]: DÃY RIÊNG cho Khu 4 và Khu 5 (luôn có). Tiêu chí: trong các dãy nằm trong khu,
+//      chọn dãy có SỐ KHỚP KỲ VỌNG cao nhất với một kết quả bất kỳ rơi vào khu đó:
+//          E[số khớp | khu] = P(số a có mặt | khu) + ... + P(số f có mặt | khu)
+//      P(n | khu) đo trên ~14.000 tổ hợp mẫu thuộc khu. Dãy được giữ cách mép khu ít nhất 10% bề rộng khu để chắc chắn
+//      thuộc khu. Số khớp kỳ vọng và xác suất trúng giải ba trở lên được đo lại trên một mẫu ĐỘC LẬP khác (không dùng lúc chọn).
+// =========================================================================
+const ZONE_EXTRA = [3, 4];                 // chỉ số khu: 3 = Khu 4, 4 = Khu 5
+const ZX_TRAIN = 40000, ZX_HOLD = 30000;   // cỡ mẫu thêm để đo tần suất / để kiểm lại
+function hyperP3(N) {                      // xác suất 1 vé bất kỳ trùng từ 3 số trở lên (máy quay công bằng)
+    const C = (n, k) => { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = r * (n - k + i) / i; return r; };
+    let s = 0; for (let k = 3; k <= 6; k++) s += C(6, k) * C(N - 6, 6 - k);
+    return s / C(N, 6);
+}
+function zoneTickets(m) {
+    const type = m.type, W = type + 1;
+    const llr = c => comboLLR(c[0], c[1], c[2], c[3], c[4], c[5], m);
+
+    // (a) Giữ nguyên thuật toán và hạt giống của bản 8
+    const rngZ = mulberry32((m.seed ^ 0x7F4A7C15) >>> 0), ZS = 30000;
+    let zs = [];
+    while (zs.length < ZS) {
+        let c = randCombo(type, rngZ); if (consecCount(c) > 3) continue;
+        zs.push({ combo: c, s: llr(c) });
+    }
+    zs.sort((a, b) => b.s - a.s);
+    let zonePicks = [0, 1, 2, 3, 4].map(z => {
+        let a = Math.floor(ZS * z / 5), b = Math.floor(ZS * (z + 1) / 5), mid = (a + b) >> 1, out = [];
+        for (let d = 0; d < (b - a) / 2 && out.length < 3; d++) {
+            let idxs = d === 0 ? [mid] : [mid - d, mid + d];
+            for (let idx of idxs) {
+                if (idx < a || idx >= b || out.length >= 3) continue;
+                if (out.every(o => overlapCount(zs[idx].combo, o.combo) === 0)) out.push(zs[idx]);
+            }
+        }
+        return out;
+    });
+
+    // (b) Dãy riêng Khu 4, Khu 5
+    const cuts = [1, 2, 3, 4].map(k => zs[Math.floor(ZS * k / 5)].s);               // điểm đầu của Khu 2..5
+    const zoneOf = s => (s <= cuts[0]) + (s <= cuts[1]) + (s <= cuts[2]) + (s <= cuts[3]);
+    const topPct = s => { let lo = 0, hi = ZS; while (lo < hi) { let md = (lo + hi) >> 1; if (zs[md].s > s) lo = md + 1; else hi = md; } return 100 * lo / ZS; };
+    let cnt = {}, tot = {};
+    ZONE_EXTRA.forEach(z => { cnt[z] = new Float64Array(W); tot[z] = 0; });
+    const addTrain = (c, z) => { if (!cnt[z]) return; for (let i = 0; i < 6; i++) cnt[z][c[i]]++; tot[z]++; };
+    for (let i = 0; i < ZS; i++) addTrain(zs[i].combo, Math.min(4, Math.floor(i * 5 / ZS)));
+    const rngT = mulberry32((m.seed ^ 0x3C6EF372) >>> 0);
+    for (let n = 0; n < ZX_TRAIN; ) { let c = randCombo(type, rngT); if (consecCount(c) > 3) continue; n++; addTrain(c, zoneOf(llr(c))); }
+
+    let avoid = new Set(); zonePicks.forEach(list => list.forEach(t => avoid.add(t.combo.join('-'))));
+    const ZM = Math.floor(ZS / 5 * 0.1);                                             // lề an toàn: 10% bề rộng khu
+    let zoneExtra = {};
+    ZONE_EXTRA.forEach(z => {
+        let f = new Float64Array(W);
+        for (let n = 1; n <= type; n++) f[n] = cnt[z][n] / Math.max(1, tot[z]);
+        const val = c => f[c[0]] + f[c[1]] + f[c[2]] + f[c[3]] + f[c[4]] + f[c[5]];
+        let a = Math.floor(ZS * z / 5), b = Math.floor(ZS * (z + 1) / 5);
+        let sHi = zs[a + ZM].s, sLo = z < 4 ? zs[b - 1 - ZM].s : -Infinity;
+        const ok = c => { if (consecCount(c) > 3 || avoid.has(c.join('-'))) return false; let s = llr(c); return s <= sHi && s >= sLo; };
+        // Điểm xuất phát: tổ hợp mẫu (phần lõi của khu) có tổng tần suất cao nhất
+        let cur = null, curV = -Infinity;
+        for (let i = a + ZM; i < (z < 4 ? b - ZM : b); i++) {
+            let v = val(zs[i].combo);
+            if (v > curV && !avoid.has(zs[i].combo.join('-'))) { curV = v; cur = zs[i].combo.slice(); }
+        }
+        if (!cur) return;
+        // Leo đồi: mỗi bước đổi 1 số sao cho tổng tần suất tăng nhiều nhất mà dãy vẫn nằm trong lõi khu
+        for (let iter = 0; iter < 60; iter++) {
+            let moves = [];
+            for (let i = 0; i < 6; i++) for (let c = 1; c <= type; c++) {
+                if (cur.indexOf(c) !== -1) continue;
+                let g = f[c] - f[cur[i]]; if (g > 1e-12) moves.push({ i: i, c: c, g: g });
+            }
+            moves.sort((p, q) => q.g - p.g);
+            let moved = false;
+            for (let mv of moves) {
+                let nxt = cur.slice(); nxt[mv.i] = mv.c; nxt.sort((p, q) => p - q);
+                if (!ok(nxt)) continue;
+                cur = nxt; curV += mv.g; moved = true; break;
+            }
+            if (!moved) break;
+        }
+        let s = llr(cur);
+        zoneExtra[z] = { combo: cur, s: s, v: curV, pct: topPct(s), trainN: tot[z] };
+    });
+
+    // Kiểm lại trên mẫu độc lập: nếu kết quả rơi vào khu thì dãy khớp trung bình bao nhiêu số, bao nhiêu % trúng giải ba trở lên
+    const rngH = mulberry32((m.seed ^ 0xA54FF53A) >>> 0);
+    let hs = {}; ZONE_EXTRA.forEach(z => { hs[z] = { n: 0, k: 0, k3: 0 }; });
+    for (let n = 0; n < ZX_HOLD; ) {
+        let c = randCombo(type, rngH); if (consecCount(c) > 3) continue; n++;
+        let z = zoneOf(llr(c)); if (!hs[z] || !zoneExtra[z]) continue;
+        let k = overlapCount(zoneExtra[z].combo, c); hs[z].n++; hs[z].k += k; if (k >= 3) hs[z].k3++;
+    }
+    ZONE_EXTRA.forEach(z => { if (!zoneExtra[z]) return; let h = hs[z]; zoneExtra[z].holdN = h.n; zoneExtra[z].expK = h.n ? h.k / h.n : 36 / type; zoneExtra[z].p3 = h.n ? h.k3 / h.n : 0; });
+    return { zonePicks: zonePicks, zoneExtra: zoneExtra, cuts: cuts };
+}
+
 // ------------------------- ĐỘNG CƠ DỰ ĐOÁN -------------------------
 // probe (tùy chọn): bộ 6 số thực tế vừa về, để xếp hạng nó trong không gian tổ hợp của pool
 function runEngine(dataDesc, type, targetDate, probe) {
@@ -2082,26 +2190,8 @@ function runEngine(dataDesc, type, targetDate, probe) {
         cover.push(r[0]); r[0].combo.forEach(n => used[n] = 1);
     }
 
-    // Vé theo KHU: lấy mẫu tổ hợp ngẫu nhiên từ đủ N số, xếp theo điểm rồi chia 5 khu đều nhau;
-    // mỗi khu lấy 3 vé nằm sát điểm giữa khu và không trùng nhau số nào.
-    const rngZ = mulberry32((m.seed ^ 0x7F4A7C15) >>> 0), ZS = 30000;
-    let zs = [];
-    while (zs.length < ZS) {
-        let c = randCombo(type, rngZ); if (consecCount(c) > 3) continue;
-        zs.push({ combo: c, s: comboLLR(c[0], c[1], c[2], c[3], c[4], c[5], m) });
-    }
-    zs.sort((a, b) => b.s - a.s);
-    let zonePicks = [0, 1, 2, 3, 4].map(z => {
-        let a = Math.floor(ZS * z / 5), b = Math.floor(ZS * (z + 1) / 5), mid = (a + b) >> 1, out = [];
-        for (let d = 0; d < (b - a) / 2 && out.length < 3; d++) {
-            let idxs = d === 0 ? [mid] : [mid - d, mid + d];
-            for (let idx of idxs) {
-                if (idx < a || idx >= b || out.length >= 3) continue;
-                if (out.every(o => overlapCount(zs[idx].combo, o.combo) === 0)) out.push(zs[idx]);
-            }
-        }
-        return out;
-    });
+    // Vé theo KHU (xem zoneTickets): 3 vé giữa mỗi khu + dãy riêng Khu 4, Khu 5
+    const zt = zoneTickets(m), zonePicks = zt.zonePicks;
 
     // Thang đo công bằng cho bộ số thật: so với tổ hợp ngẫu nhiên lấy từ ĐỦ N số (không phải chỉ các tổ hợp của pool,
     // vì pool gồm toàn số được chấm cao nên thang pool luôn đẩy kết quả thật về cuối bảng).
@@ -2118,7 +2208,7 @@ function runEngine(dataDesc, type, targetDate, probe) {
     }
 
     return {
-        m: m, topHigh: topHigh, topMid: topMid, bottomLow: bottomLow, anneal: anneal, cover: cover, fairPct: fairPct, zonePicks: zonePicks,
+        m: m, topHigh: topHigh, topMid: topMid, bottomLow: bottomLow, anneal: anneal, cover: cover, fairPct: fairPct, zonePicks: zonePicks, zoneExtra: zt.zoneExtra,
         probeS: probeS, rank: Math.min(higher + 1, totalValid), totalValid: totalValid,
         execTime: ((performance.now() - tStart) / 1000).toFixed(2)
     };
@@ -2207,6 +2297,8 @@ function computeLatestCheck(type, data) {
     sum.pickRule = pk.name; sum.pickZone = pk.zone;
     sum.blocks = [
         Object.assign({ name: `⭐ Dãy chốt theo khu (${pk.zone === null ? '—' : 'Khu ' + (pk.zone + 1)})` }, bestTicket(pk.zone === null ? [] : res.zonePicks[pk.zone].slice(0, 1), nums)),
+        Object.assign({ name: '🎯 Dãy riêng Khu 4' }, bestTicket(res.zoneExtra && res.zoneExtra[3] ? [res.zoneExtra[3]] : [], nums)),
+        Object.assign({ name: '🎯 Dãy riêng Khu 5' }, bestTicket(res.zoneExtra && res.zoneExtra[4] ? [res.zoneExtra[4]] : [], nums)),
         Object.assign({ name: '🏆 Vùng đỉnh (5 vé)' }, bestTicket(res.topHigh, nums)),
         Object.assign({ name: '⚖️ Vùng trung vị (5 vé)' }, bestTicket(res.topMid, nums)),
         Object.assign({ name: '💀 Vùng hạ vị (5 vé)' }, bestTicket(res.bottomLow, nums)),
@@ -2251,9 +2343,39 @@ function scheduleLatestCheck(type, data) {
 }
 
 // Khối gợi ý kỳ tới theo khu vực (đặt đầu bảng dự đoán)
+// Dãy riêng cho Khu 4 và Khu 5 (luôn hiện)
+function zoneExtraHtml(res) {
+    const m = res.m, pos = m.pos, type = m.type, zx = res.zoneExtra;
+    if (!zx || !ZONE_EXTRA.some(z => zx[z])) return '';
+    let cards = ZONE_EXTRA.filter(z => zx[z]).map(z => {
+        let t = zx[z];
+        let recent = pos.n >= 40 ? `${(100 * pos.bins[z] / pos.n).toFixed(0)}% kết quả ${pos.n} kỳ gần nhất rơi vào khu này` : 'chưa đủ kỳ để thống kê khu';
+        return `<div class="zx-card">
+            <div class="zx-label">KHU ${z + 1}${z === pos.lastZone ? ' · ● kỳ vừa về' : ''} · ${t.pct >= 99.95 ? 'dãy nằm sát đáy khu (top >99.9%)' : 'dãy ở vị trí top ' + t.pct.toFixed(1) + '%'}</div>
+            <div class="zx-main">${fmtCombo(t.combo)}</div>
+            <div class="zx-stat">Nếu kết quả rơi vào Khu ${z + 1}: kỳ vọng khớp <b>${t.expK.toFixed(2)}</b> số · <b>${(100 * t.p3).toFixed(1)}%</b> trúng giải ba trở lên</div>
+            <div class="zx-stat" style="color:#8b949e;">${recent}</div>
+        </div>`;
+    }).join('');
+    let trainN = Math.round(ZONE_EXTRA.reduce((a, z) => a + (zx[z] ? zx[z].trainN : 0), 0) / ZONE_EXTRA.length / 1000) * 1000;
+    let holdN = Math.round(ZONE_EXTRA.reduce((a, z) => a + (zx[z] ? zx[z].holdN : 0), 0) / ZONE_EXTRA.length / 100) * 100;
+    return `
+        <div class="zone-sub">🎯 DÃY RIÊNG CHO KHU 4 VÀ KHU 5 (luôn có)</div>
+        <div class="zx-grid">${cards}</div>
+        <div class="zone-note">Cách chọn: trong khoảng ${trainN.toLocaleString()} tổ hợp mẫu thuộc mỗi khu, đo xem mỗi số có mặt thường xuyên đến đâu, rồi chọn dãy nằm trong khu có tổng tần suất cao nhất — đó là dãy khớp được nhiều số nhất (tính trung bình) với một kết quả bất kỳ rơi vào khu. Hai con số "kỳ vọng khớp" và "% trúng giải" được đo lại trên khoảng ${holdN.toLocaleString()} tổ hợp mẫu độc lập khác của mỗi khu. Nếu không biết trước khu thì vé nào cũng kỳ vọng khớp ${(36 / type).toFixed(2)} số, ${(100 * hyperP3(type)).toFixed(1)}% trúng giải ba trở lên.</div>`;
+}
+
 function zoneAdviceHtml(res) {
     const m = res.m, pos = m.pos, type = m.type, tot = Math.max(1, pos.n);
-    if (pos.n < 40 || !res.zonePicks) return '';
+    if (!res.zonePicks) return '';
+    let extra = zoneExtraHtml(res);
+    let onlyExtra = () => extra ? `
+    <div class="block-zone">
+        <div class="title-zone">⭐ GỢI Ý KỲ TỚI THEO KHU VỰC</div>
+        <div class="zone-note">Chưa đủ kỳ để thống kê kết quả hay rơi vào khu nào (cần khoảng 70 kỳ trở lên).</div>
+        ${extra}
+    </div>` : '';
+    if (pos.n < 40) return onlyExtra();
     let pk = pos.rules[pos.pick], other = pos.rules[1 - pos.pick];
     let cells = ZONE_NAME.map((nm, z) => `<td style="text-align:center;${z === pk.zone ? ' background:rgba(227,179,65,0.12);' : ''}"><span style="color:#8b949e;">Khu ${z + 1}</span><br><b>${(100 * pos.bins[z] / tot).toFixed(0)}%</b>${z === pos.lastZone ? '<br>● vừa về' : ''}${z === pk.zone ? '<br>⭐ chọn' : ''}</td>`).join('');
     let ruleRows = pos.rules.map((r, i) => `<tr><td>${i === pos.pick ? '⭐ ' : ''}${r.name}</td><td class="num">${r.zone === null ? '—' : 'Khu ' + (r.zone + 1)}</td><td class="num">${r.n > 0 ? (100 * r.rate).toFixed(1) + '%' : '—'}</td><td class="num">${r.n > 0 ? fmtZ(r.z) : '—'}</td></tr>`).join('');
@@ -2264,7 +2386,7 @@ function zoneAdviceHtml(res) {
     let main = pk.zone === null ? [] : res.zonePicks[pk.zone], alt = [];
     if (other.zone !== null && other.zone !== pk.zone && res.zonePicks[other.zone][0]) alt.push({ t: res.zonePicks[other.zone][0], why: `${other.name} → Khu ${other.zone + 1}` });
     main.slice(1).forEach(t => { if (alt.length < 2) alt.push({ t: t, why: `cùng Khu ${pk.zone + 1}, không trùng số nào với dãy chốt` }); });
-    if (!main[0]) return '';
+    if (!main[0]) return onlyExtra();
     let perZone = Math.round((type === 45 ? 8145060 : 28989675) / 5);
     return `
     <div class="block-zone">
@@ -2278,6 +2400,7 @@ function zoneAdviceHtml(res) {
             <div class="zone-pick-main">${fmtCombo(main[0].combo)}</div>
         </div>
         ${alt.map((a, i) => `<div class="row-item"><span style="color:#c9d1d9;">Phương án ${i + 2}: <b>${fmtCombo(a.t.combo)}</b></span><span class="score-badge" style="background:rgba(227,179,65,0.1); color:#e3b341;">${a.why}</span></div>`).join('')}
+        ${extra}
     </div>`;
 }
 
@@ -2540,7 +2663,7 @@ function exportData() {
 // =========================================================================
 // TỰ CẬP NHẬT KẾT QUẢ: tải file kết quả công khai (thu tự động từ vietlott.vn mỗi ngày) rồi gộp vào kho trong máy
 // =========================================================================
-const APP_BUILD = '13.11.2026 · bản 8';
+const APP_BUILD = '17.11.2026 · bản 9';
 const SYNC_SRC = {
     45: 'https://raw.githubusercontent.com/vietvudanh/vietlott-data/main/data/power645.jsonl',
     55: 'https://raw.githubusercontent.com/vietvudanh/vietlott-data/main/data/power655.jsonl'
